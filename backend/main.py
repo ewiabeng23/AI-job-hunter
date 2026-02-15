@@ -305,3 +305,30 @@ def startup_event():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
+
+# Import Interview Prep Agent
+from interview_prep_agent import InterviewPrepAgent
+
+# Initialize
+interview_prep = InterviewPrepAgent(API_KEY)
+
+@app.post("/jobs/interview-prep")
+async def get_interview_prep(
+    request: dict,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Generate interview preparation materials for a job"""
+    job_data = request.get("job_data", {})
+    
+    result = await interview_prep.generate_interview_prep(job_data)
+    
+    return result
+
+@app.get("/jobs/common-questions/{category}")
+async def get_common_questions(
+    category: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Get common interview questions for a job category"""
+    questions = await interview_prep.get_common_questions(category)
+    return {"category": category, "questions": questions}

@@ -34,7 +34,7 @@ function Login({ onLogin }) {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>🚀 Job Hunter AI</h1>
+          <h1>🚀 Job Hunter</h1>
           <p>Welcome back! Sign in to continue your job search.</p>
         </div>
 

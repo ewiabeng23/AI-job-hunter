@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './Dashboard.css'
-import InterviewPrep from './InterviewPrep'
-import './InterviewPrep.css'
 
 const API_URL = 'http://44.204.116.47:8001'
 
@@ -31,8 +29,6 @@ function Dashboard({ user, token, onLogout }) {
   
   // Modal for showing tailored CV
   const [showModal, setShowModal] = useState(false)
-  const [showInterviewPrep, setShowInterviewPrep] = useState(false)
-  const [interviewPrepJob, setInterviewPrepJob] = useState(null)
   const [modalData, setModalData] = useState(null)
 
   const axiosConfig = {
@@ -353,17 +349,7 @@ function Dashboard({ user, token, onLogout }) {
                       >
                         {applying && selectedJob?.id === job.id ? '🔄 Tailoring CV...' : '✨ Apply'}
                       </button>
-                      <button
-                        onClick={() => {
-                          setInterviewPrepJob(job)
-                          setShowInterviewPrep(true)
-                        }}
-                        className="btn-interview-prep"
-                      >
-                        🎤 Interview Prep
-                      </button>
                     </div>
-                      </button>
                   ))}
                 </div>
               </div>
@@ -465,16 +451,4 @@ function Dashboard({ user, token, onLogout }) {
   )
 }
 
-
-      {/* Interview Prep Modal */}
-      {showInterviewPrep && interviewPrepJob && (
-        <InterviewPrep
-          job={interviewPrepJob}
-          token={token}
-          onClose={() => {
-            setShowInterviewPrep(false)
-            setInterviewPrepJob(null)
-          }}
-        />
-      )}
 export default Dashboard

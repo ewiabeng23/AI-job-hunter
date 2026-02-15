@@ -576,3 +576,44 @@
 .modal-content::-webkit-scrollbar-thumb:hover {
   background: #764ba2;
 }
+
+/* Apply Now Button in Modal */
+.btn-apply-now {
+  width: 100%;
+  margin-top: 1.5rem;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  border: none;
+  padding: 1.25rem;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 5px 15px rgba(34, 197, 94, 0.3);
+}
+
+.btn-apply-now:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.5);
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+/* Interview Prep Button */
+.btn-interview-prep {
+  width: 100%;
+  margin-top: 0.75rem;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  padding: 0.875rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-interview-prep:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4);
+}
