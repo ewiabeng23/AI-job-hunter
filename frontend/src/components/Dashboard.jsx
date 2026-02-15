@@ -26,6 +26,10 @@ function Dashboard({ user, token, onLogout }) {
   // Selected job
   const [selectedJob, setSelectedJob] = useState(null)
   const [applying, setApplying] = useState(false)
+  
+  // NEW: Modal for showing tailored CV
+  const [showModal, setShowModal] = useState(false)
+  const [modalData, setModalData] = useState(null)
 
   const axiosConfig = {
     headers: { Authorization: `Bearer ${token}` }
@@ -120,13 +124,22 @@ function Dashboard({ user, token, onLogout }) {
         }
       }, axiosConfig)
       
-      alert(`✅ Application submitted! Match score: ${response.data.match?.match_score}%`)
+      // Show the AI-tailored CV and cover letter in modal
+      setModalData({
+        job: job,
+        customCV: response.data.custom_cv,
+        coverLetter: response.data.cover_letter,
+        matchScore: response.data.match?.match_score,
+        recommendation: response.data.match?.recommendation
+      })
+      setShowModal(true)
+      
       loadApplications()
     } catch (err) {
       if (err.response?.status === 403) {
         alert('⚠️ Free tier limit reached (5 applications/month). Upgrade to Pro!')
       } else {
-        alert('❌ Failed to apply')
+        alert('❌ Failed to apply: ' + (err.response?.data?.detail || err.message))
       }
     } finally {
       setApplying(false)
@@ -134,8 +147,72 @@ function Dashboard({ user, token, onLogout }) {
     }
   }
 
+  const downloadCV = () => {
+    if (!modalData?.customCV) return
+    
+    const blob = new Blob([modalData.customCV], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `CV_${modalData.job.company}_${modalData.job.title}.txt`
+    a.click()
+  }
+
+  const downloadCoverLetter = () => {
+    if (!modalData?.coverLetter) return
+    
+    const blob = new Blob([modalData.coverLetter], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `CoverLetter_${modalData.job.company}_${modalData.job.title}.txt`
+    a.click()
+  }
+
   return (
     <div className="dashboard">
+      {/* Modal for showing AI-tailored CV */}
+      {showModal && modalData && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>🎯 AI-Tailored Application</h2>
+              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="match-section">
+                <h3>Match Score: <span className="score">{modalData.matchScore}%</span></h3>
+                <p className="recommendation">Recommendation: <strong>{modalData.recommendation}</strong></p>
+              </div>
+
+              <div className="cv-section">
+                <div className="section-header">
+                  <h3>📄 Custom CV (Tailored for {modalData.job.company})</h3>
+                  <button onClick={downloadCV} className="btn-download">⬇️ Download CV</button>
+                </div>
+                <pre className="cv-preview">{modalData.customCV}</pre>
+              </div>
+
+              <div className="cover-section">
+                <div className="section-header">
+                  <h3>✉️ Cover Letter</h3>
+                  <button onClick={downloadCoverLetter} className="btn-download">⬇️ Download Cover Letter</button>
+                </div>
+                <pre className="cover-preview">{modalData.coverLetter}</pre>
+              </div>
+
+              <div className="modal-footer">
+                <p className="info-text">
+                  ✅ Application saved! Your AI-tailored CV and cover letter are ready.
+                  Download them and submit to {modalData.job.company}!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-content">
@@ -179,6 +256,7 @@ function Dashboard({ user, token, onLogout }) {
           <div className="tab-content">
             <div className="search-section">
               <h2>🎯 Find Your Dream Job</h2>
+              <p className="subtitle">Our AI will automatically tailor your CV for each job!</p>
               <form onSubmit={searchJobs} className="search-form">
                 <div className="form-row">
                   <div className="form-group">
@@ -259,7 +337,7 @@ function Dashboard({ user, token, onLogout }) {
                         className="btn-apply"
                         disabled={applying && selectedJob?.id === job.id}
                       >
-                        {applying && selectedJob?.id === job.id ? '🔄 Applying...' : '✨ Apply with AI'}
+                        {applying && selectedJob?.id === job.id ? '🔄 AI is tailoring your CV...' : '✨ Apply with AI'}
                       </button>
                     </div>
                   ))}
@@ -273,7 +351,10 @@ function Dashboard({ user, token, onLogout }) {
         {activeTab === 'cvs' && (
           <div className="tab-content">
             <div className="cvs-header">
-              <h2>📄 My CVs</h2>
+              <div>
+                <h2>📄 My CVs</h2>
+                <p className="subtitle">Upload your master CV - AI will tailor it for each job!</p>
+              </div>
               <button 
                 className="btn-primary"
                 onClick={() => setShowCvForm(!showCvForm)}
@@ -290,16 +371,16 @@ function Dashboard({ user, token, onLogout }) {
                     type="text"
                     value={cvName}
                     onChange={(e) => setCvName(e.target.value)}
-                    placeholder="e.g., Tech CV"
+                    placeholder="e.g., Tech CV, Finance CV"
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label>CV Content</label>
+                  <label>CV Content (Paste your full CV here)</label>
                   <textarea
                     value={cvContent}
                     onChange={(e) => setCvContent(e.target.value)}
-                    placeholder="Paste your CV here..."
+                    placeholder="Paste your complete CV here. The AI will automatically customize it for each job you apply to..."
                     rows={15}
                     required
                   />
@@ -316,6 +397,7 @@ function Dashboard({ user, token, onLogout }) {
                   <h4>{cv.name} {cv.is_default && <span className="default-badge">⭐ Default</span>}</h4>
                   <p className="cv-preview">{cv.content.substring(0, 200)}...</p>
                   <p className="cv-date">Created: {new Date(cv.created_at).toLocaleDateString()}</p>
+                  <p className="cv-note">💡 This CV will be AI-tailored for each job you apply to</p>
                 </div>
               ))}
               {cvs.length === 0 && !showCvForm && (
@@ -329,6 +411,7 @@ function Dashboard({ user, token, onLogout }) {
         {activeTab === 'applications' && (
           <div className="tab-content">
             <h2>📊 My Applications</h2>
+            <p className="subtitle">Each application has an AI-tailored CV specific to that job</p>
             <div className="applications-list">
               {applications.map((app) => (
                 <div key={app.id} className="application-card">
@@ -359,5 +442,3 @@ function Dashboard({ user, token, onLogout }) {
 }
 
 export default Dashboard
-
-// Add this at the end of Dashboard.jsx, just before export default Dashboard
