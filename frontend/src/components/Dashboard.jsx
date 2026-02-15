@@ -363,7 +363,6 @@ function Dashboard({ user, token, onLogout }) {
                         🎤 Interview Prep
                       </button>
                     </div>
-                      </button>
                   ))}
                 </div>
               </div>
