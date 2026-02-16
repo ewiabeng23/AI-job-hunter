@@ -16,6 +16,7 @@ from auth import hash_password, verify_password, create_access_token, get_curren
 sys.path.append('/home/ubuntu/job-hunter-saas/backend/agents')
 from job_hunter_agent import JobHunterAgent
 from job_scraper_agent import JobScraperAgent
+from interview_prep_agent import InterviewPrepAgent
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -39,6 +40,7 @@ job_hunter = JobHunterAgent(API_KEY)
 job_scraper = JobScraperAgent()
 
 # Pydantic models for API
+interview_prep = InterviewPrepAgent(API_KEY)
 class UserSignup(BaseModel):
     email: EmailStr
     password: str
@@ -297,6 +299,31 @@ def root():
     }
 
 # Initialize database on startup
+
+@app.post("/jobs/interview-prep")
+async def get_interview_prep(request: dict, user_id: str = Depends(get_current_user_id)):
+    job_data = request.get("job_data", {})
+    result = await interview_prep.generate_interview_prep(job_data)
+    return result
+
+@app.delete("/applications/{app_id}")
+async def delete_application(app_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    app = db.query(Application).filter(Application.id == app_id, Application.user_id == user_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    db.delete(app)
+    db.commit()
+    return {"status": "deleted", "id": app_id}
+
+@app.delete("/cvs/{cv_id}")
+async def delete_cv(cv_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    cv = db.query(UserCV).filter(UserCV.id == cv_id, UserCV.user_id == user_id).first()
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV not found")
+    db.delete(cv)
+    db.commit()
+    return {"status": "deleted", "id": cv_id}
+
 @app.on_event("startup")
 def startup_event():
     init_db()
@@ -305,30 +332,3 @@ def startup_event():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
-
-# Import Interview Prep Agent
-from interview_prep_agent import InterviewPrepAgent
-
-# Initialize
-interview_prep = InterviewPrepAgent(API_KEY)
-
-@app.post("/jobs/interview-prep")
-async def get_interview_prep(
-    request: dict,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Generate interview preparation materials for a job"""
-    job_data = request.get("job_data", {})
-    
-    result = await interview_prep.generate_interview_prep(job_data)
-    
-    return result
-
-@app.get("/jobs/common-questions/{category}")
-async def get_common_questions(
-    category: str,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Get common interview questions for a job category"""
-    questions = await interview_prep.get_common_questions(category)
-    return {"category": category, "questions": questions}

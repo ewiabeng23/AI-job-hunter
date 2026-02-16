@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import './Dashboard.css'
 import InterviewPrep from './InterviewPrep'
+import './Dashboard.css'
+import './InterviewPrep.css'
 
 const API_URL = 'http://44.204.116.47:8001'
 
@@ -30,9 +31,9 @@ function Dashboard({ user, token, onLogout }) {
   
   // Modal for showing tailored CV
   const [showModal, setShowModal] = useState(false)
-  const [modalData, setModalData] = useState(null)
   const [showInterviewPrep, setShowInterviewPrep] = useState(false)
   const [interviewPrepJob, setInterviewPrepJob] = useState(null)
+  const [modalData, setModalData] = useState(null)
 
   const axiosConfig = {
     headers: { Authorization: `Bearer ${token}` }
@@ -53,6 +54,28 @@ function Dashboard({ user, token, onLogout }) {
   }
 
   const loadApplications = async () => {
+
+  const deleteApplication = async (appId) => {
+    if (!confirm("Are you sure you want to delete this application?")) return
+    try {
+      await axios.delete(`${API_URL}/applications/${appId}`, axiosConfig)
+      loadApplications()
+      alert("✅ Application deleted!")
+    } catch (err) {
+      alert("❌ Failed to delete application")
+    }
+  }
+
+  const deleteCV = async (cvId) => {
+    if (!confirm("Are you sure you want to delete this CV?")) return
+    try {
+      await axios.delete(`${API_URL}/cvs/${cvId}`, axiosConfig)
+      loadCvs()
+      alert("✅ CV deleted!")
+    } catch (err) {
+      alert("❌ Failed to delete CV")
+    }
+  }
     try {
       const response = await axios.get(`${API_URL}/applications`, axiosConfig)
       setApplications(response.data)
@@ -61,28 +84,6 @@ function Dashboard({ user, token, onLogout }) {
     }
   }
 
-
-  const deleteApplication = async (appId) => {
-    if (!window.confirm("Delete this application?")) return
-    try {
-      await axios.delete(`${API_URL}/applications/${appId}`, axiosConfig)
-      loadApplications()
-      alert("✅ Application deleted!")
-    } catch (err) {
-      alert("❌ Failed to delete")
-    }
-  }
-
-  const deleteCV = async (cvId) => {
-    if (!window.confirm("Delete this CV?")) return
-    try {
-      await axios.delete(`${API_URL}/cvs/${cvId}`, axiosConfig)
-      loadCvs()
-      alert("✅ CV deleted!")
-    } catch (err) {
-      alert("❌ Failed to delete")
-    }
-  }
   const createCV = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -280,14 +281,14 @@ function Dashboard({ user, token, onLogout }) {
           onClick={() => setActiveTab('applications')}
         >
           📊 Applications ({applications.length})
-        </button>
-      </div>
         <button 
           className={activeTab === 'interview' ? 'tab active' : 'tab'}
           onClick={() => setActiveTab('interview')}
         >
           🎤 Interview Prep
         </button>
+        </button>
+      </div>
 
       {/* Content */}
       <div className="dashboard-content">
@@ -385,8 +386,6 @@ function Dashboard({ user, token, onLogout }) {
                 </div>
               </div>
             )}
-          </div>
-        )}
 
         {/* CVS TAB */}
         {activeTab === 'cvs' && (
@@ -438,7 +437,12 @@ function Dashboard({ user, token, onLogout }) {
                   <h4>{cv.name} {cv.is_default && <span className="default-badge">⭐ Default</span>}</h4>
                   <p className="cv-preview">{cv.content.substring(0, 200)}...</p>
                   <p className="cv-date">Created: {new Date(cv.created_at).toLocaleDateString()}</p>
-                  <button onClick={() => deleteCV(cv.id)} className="btn-delete">🗑️ Delete</button>
+                  <button 
+                    onClick={() => deleteCV(cv.id)}
+                    className="btn-delete"
+                  >
+                    🗑️ Delete
+                  </button>
                   <p className="cv-note">💡 This CV will be AI-tailored for each job you apply to</p>
                 </div>
               ))}
@@ -464,7 +468,12 @@ function Dashboard({ user, token, onLogout }) {
                   <p className="app-company">🏢 {app.company}</p>
                   <p className="app-status">Status: <span className={`status-${app.status}`}>{app.status}</span></p>
                   <p className="app-date">Applied: {new Date(app.applied_at).toLocaleDateString()}</p>
-                  <button onClick={() => deleteApplication(app.id)} className="btn-delete">🗑️ Delete</button>
+                  <button 
+                    onClick={() => deleteApplication(app.id)}
+                    className="btn-delete"
+                  >
+                    🗑️ Delete
+                  </button>
                   {app.job_url && (
                     <a href={app.job_url} target="_blank" rel="noopener noreferrer" className="btn-link">
                       🔗 View Job
@@ -494,10 +503,25 @@ function Dashboard({ user, token, onLogout }) {
                   </div>
                   <p className="app-company">🏢 {app.company}</p>
                   <p className="app-date">Applied: {new Date(app.applied_at).toLocaleDateString()}</p>
-                  <div className="button-row">
-                    <button onClick={() => deleteApplication(app.id)} className="btn-delete">🗑️ Delete</button>
-                    <button onClick={() => { setInterviewPrepJob({ title: app.job_title, company: app.company, description: app.job_title }); setShowInterviewPrep(true); }} className="btn-interview-prep">🎤 Interview Prep</button>
-                  </div>
+                  <button 
+                    onClick={() => deleteApplication(app.id)}
+                    className="btn-delete"
+                  >
+                    🗑️ Delete
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setInterviewPrepJob({
+                        title: app.job_title,
+                        company: app.company,
+                        description: app.job_title + " at " + app.company
+                      })
+                      setShowInterviewPrep(true)
+                    }}
+                    className="btn-interview-prep"
+                  >
+                    🎤 Start Interview Prep
+                  </button>
                 </div>
               ))}
               {applications.length === 0 && (
@@ -505,42 +529,27 @@ function Dashboard({ user, token, onLogout }) {
               )}
             </div>
           </div>
-        )}
-
-        {/* INTERVIEW PREP TAB */}
-        {activeTab === 'interview' && (
-          <div className="tab-content">
-            <h2>🎤 Interview Prep</h2>
-            <p className="subtitle">Practice for jobs you've applied to</p>
-            <div className="applications-list">
-              {applications.map((app) => (
-                <div key={app.id} className="application-card">
-                  <div className="app-header">
-                    <h4>{app.job_title}</h4>
-                    <span className="app-score">Match: {app.match_score}%</span>
-                  </div>
-                  <p className="app-company">🏢 {app.company}</p>
-                  <p className="app-date">Applied: {new Date(app.applied_at).toLocaleDateString()}</p>
-                  <div className="button-row">
-                    <button onClick={() => deleteApplication(app.id)} className="btn-delete">🗑️ Delete</button>
-                    <button onClick={() => { setInterviewPrepJob({ title: app.job_title, company: app.company, description: app.job_title }); setShowInterviewPrep(true); }} className="btn-interview-prep">🎤 Interview Prep</button>
-                  </div>
-                </div>
-              ))}
-              {applications.length === 0 && (
-                <p className="empty-state">No applications yet. Apply to jobs first!</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Interview Prep Modal */}
-        {showInterviewPrep && interviewPrepJob && (
-          <InterviewPrep job={interviewPrepJob} token={token} onClose={() => { setShowInterviewPrep(false); setInterviewPrepJob(null); }} />
         )}
       </div>
+
+      {/* Interview Prep Modal */}
+      {showInterviewPrep && interviewPrepJob && (
+        <InterviewPrep
+          job={interviewPrepJob}
+          token={token}
+          onClose={() => {
+            setShowInterviewPrep(false)
+            setInterviewPrepJob(null)
+          }}
+        />
+      )}
+
+      {/* Interview Prep Modal */}
+
+      {/* Interview Prep Modal */}
     </div>
   )
 }
+
 
 export default Dashboard
