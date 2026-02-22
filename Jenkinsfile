@@ -2,7 +2,6 @@ pipeline {
     agent any
     
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         FRONTEND_IMAGE = 'ewiabeng23/job-hunter-frontend'
         BACKEND_IMAGE = 'ewiabeng23/job-hunter-backend'
         K8S_NAMESPACE = 'job-hunter'
@@ -36,43 +35,86 @@ pipeline {
                 }
             }
         }
-        
-        stage('Build Backend') {
+
+        stage('Build & Push Backend with Kaniko') {
             steps {
-                echo 'Building backend Docker image...'
-                sh 'docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} ./backend'
-                sh 'docker tag ${BACKEND_IMAGE}:${BUILD_NUMBER} ${BACKEND_IMAGE}:latest'
-            }
-        }
-        
-        stage('Build Frontend') {
-            steps {
-                echo 'Building frontend Docker image...'
-                sh 'docker build -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} ./frontend'
-                sh 'docker tag ${FRONTEND_IMAGE}:${BUILD_NUMBER} ${FRONTEND_IMAGE}:latest'
+                echo 'Building backend image with Kaniko...'
+                sh '''
+                    kubectl run kaniko-backend \
+                        --image=gcr.io/kaniko-project/executor:latest \
+                        --restart=Never \
+                        --namespace=${K8S_NAMESPACE} \
+                        --overrides='{
+                            "spec": {
+                                "containers": [{
+                                    "name": "kaniko-backend",
+                                    "image": "gcr.io/kaniko-project/executor:latest",
+                                    "args": [
+                                        "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main",
+                                        "--context-sub-path=backend",
+                                        "--dockerfile=backend/Dockerfile",
+                                        "--destination=ewiabeng23/job-hunter-backend:latest",
+                                        "--destination=ewiabeng23/job-hunter-backend:'"${BUILD_NUMBER}"'"
+                                    ],
+                                    "volumeMounts": [{
+                                        "name": "docker-config",
+                                        "mountPath": "/kaniko/.docker"
+                                    }]
+                                }],
+                                "volumes": [{
+                                    "name": "docker-config",
+                                    "secret": {
+                                        "secretName": "dockerhub-secret"
+                                    }
+                                }],
+                                "restartPolicy": "Never"
+                            }
+                        }' \
+                        --wait=true \
+                        --timeout=300s
+                    kubectl delete pod kaniko-backend -n ${K8S_NAMESPACE}
+                '''
             }
         }
 
-        stage('Trivy Security Scan') {
+        stage('Build & Push Frontend with Kaniko') {
             steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                    sh '''
-                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-                        trivy image --exit-code 0 --severity HIGH,CRITICAL ${BACKEND_IMAGE}:${BUILD_NUMBER}
-                        trivy image --exit-code 0 --severity HIGH,CRITICAL ${FRONTEND_IMAGE}:${BUILD_NUMBER}
-                    '''
-                }
-            }
-        }
-        
-        stage('Push to DockerHub') {
-            steps {
-                echo 'Pushing images to Docker Hub...'
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-                sh 'docker push ${BACKEND_IMAGE}:${BUILD_NUMBER}'
-                sh 'docker push ${BACKEND_IMAGE}:latest'
-                sh 'docker push ${FRONTEND_IMAGE}:${BUILD_NUMBER}'
-                sh 'docker push ${FRONTEND_IMAGE}:latest'
+                echo 'Building frontend image with Kaniko...'
+                sh '''
+                    kubectl run kaniko-frontend \
+                        --image=gcr.io/kaniko-project/executor:latest \
+                        --restart=Never \
+                        --namespace=${K8S_NAMESPACE} \
+                        --overrides='{
+                            "spec": {
+                                "containers": [{
+                                    "name": "kaniko-frontend",
+                                    "image": "gcr.io/kaniko-project/executor:latest",
+                                    "args": [
+                                        "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main",
+                                        "--context-sub-path=frontend",
+                                        "--dockerfile=frontend/Dockerfile",
+                                        "--destination=ewiabeng23/job-hunter-frontend:latest",
+                                        "--destination=ewiabeng23/job-hunter-frontend:'"${BUILD_NUMBER}"'"
+                                    ],
+                                    "volumeMounts": [{
+                                        "name": "docker-config",
+                                        "mountPath": "/kaniko/.docker"
+                                    }]
+                                }],
+                                "volumes": [{
+                                    "name": "docker-config",
+                                    "secret": {
+                                        "secretName": "dockerhub-secret"
+                                    }
+                                }],
+                                "restartPolicy": "Never"
+                            }
+                        }' \
+                        --wait=true \
+                        --timeout=300s
+                    kubectl delete pod kaniko-frontend -n ${K8S_NAMESPACE}
+                '''
             }
         }
         
@@ -92,7 +134,7 @@ pipeline {
             echo '✅ Pipeline completed successfully!'
         }
         unstable {
-            echo '⚠️ Pipeline completed with warnings - check SonarQube or Trivy results!'
+            echo '⚠️ Pipeline completed with warnings!'
         }
         failure {
             echo '❌ Pipeline failed! Check logs above.'
