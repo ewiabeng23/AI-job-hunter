@@ -13,7 +13,7 @@ from models import User, UserCV, Application
 from auth import hash_password, verify_password, create_access_token, get_current_user_id
 
 # Import agents
-sys.path.append('/home/ubuntu/job-hunter-saas/backend/agents')
+sys.path.append('/app/agents')
 from job_hunter_agent import JobHunterAgent
 from job_scraper_agent import JobScraperAgent
 from interview_prep_agent import InterviewPrepAgent

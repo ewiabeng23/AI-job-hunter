@@ -20,32 +20,7 @@ spec:
         - containerPort: 8001
         env:
         - name: DATABASE_URL
-          value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)"
-        - name: DATABASE_USER
-          valueFrom:
-            secretKeyRef:
-              name: jobhunter-secrets
-              key: DATABASE_USER
-        - name: DATABASE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: jobhunter-secrets
-              key: DATABASE_PASSWORD
-        - name: DATABASE_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: jobhunter-config
-              key: DATABASE_HOST
-        - name: DATABASE_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: jobhunter-config
-              key: DATABASE_PORT
-        - name: DATABASE_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: jobhunter-config
-              key: DATABASE_NAME
+          value: "postgresql://jobhunter_user:secure_password_123@postgres-service:5432/jobhunter"
         - name: ANTHROPIC_API_KEY
           valueFrom:
             secretKeyRef:
