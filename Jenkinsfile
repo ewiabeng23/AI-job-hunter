@@ -5,6 +5,7 @@ pipeline {
         FRONTEND_IMAGE = 'ewiabeng23/job-hunter-frontend'
         BACKEND_IMAGE = 'ewiabeng23/job-hunter-backend'
         K8S_NAMESPACE = 'job-hunter'
+        SONAR_URL = 'http://af8b0136249d444aab8138790d39ab56-687225748.us-east-1.elb.amazonaws.com'
         PATH = "/var/jenkins_home/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     }
     
@@ -18,7 +19,25 @@ pipeline {
             }
         }
 
-        stage('Build & Push Backend with Kaniko') {
+        stage('SonarQube Analysis') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    withSonarQubeEnv('sonarqube') {
+                        sh '''
+                            curl -o /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+                            unzip -o /tmp/sonar-scanner.zip -d /tmp/
+                            /tmp/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner \
+                                -Dsonar.projectKey=job-hunter \
+                                -Dsonar.sources=. \
+                                -Dsonar.host.url=${SONAR_URL} \
+                                -Dsonar.token=${SONAR_AUTH_TOKEN}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build Backend with Kaniko') {
             steps {
                 echo 'Building backend image with Kaniko...'
                 sh '''
@@ -60,7 +79,7 @@ pipeline {
             }
         }
 
-        stage('Build & Push Frontend with Kaniko') {
+        stage('Build Frontend with Kaniko') {
             steps {
                 echo 'Building frontend image with Kaniko...'
                 sh '''
@@ -101,7 +120,19 @@ pipeline {
                 '''
             }
         }
-        
+
+        stage('Trivy Security Scan') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    sh '''
+                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /var/jenkins_home/bin
+                        trivy image --exit-code 0 --severity HIGH,CRITICAL ewiabeng23/job-hunter-backend:latest
+                        trivy image --exit-code 0 --severity HIGH,CRITICAL ewiabeng23/job-hunter-frontend:latest
+                    '''
+                }
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
                 echo 'Deploying to Kubernetes...'
@@ -116,6 +147,9 @@ pipeline {
     post {
         success {
             echo '✅ Pipeline completed successfully!'
+        }
+        unstable {
+            echo '⚠️ Pipeline completed with warnings - check SonarQube or Trivy!'
         }
         failure {
             echo '❌ Pipeline failed! Check logs above.'
