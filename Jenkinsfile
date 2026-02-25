@@ -138,7 +138,7 @@ pipeline {
                 echo 'Deploying with Helm...'
                 sh '''
                     helm upgrade job-hunter /var/jenkins_home/helm/job-hunter \
-                        --install \
+                        --install --create-namespace \
                         --namespace job-hunter \
                         --values /var/jenkins_home/helm/job-hunter/values.yaml \
                         --values /var/jenkins_home/helm/secrets.yaml \
