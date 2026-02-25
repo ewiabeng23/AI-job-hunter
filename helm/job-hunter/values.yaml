@@ -1,0 +1,59 @@
+namespace: job-hunter
+
+config:
+  environment: "production"
+
+secrets:
+  anthropicApiKey: "REPLACE_WITH_REAL_KEY"
+  secretKey: "REPLACE_WITH_REAL_SECRET_KEY"
+
+backend:
+  image:
+    repository: ewiabeng23/job-hunter-backend
+    tag: latest
+    pullPolicy: Always
+  replicas: 2
+  port: 8001
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  image:
+    repository: ewiabeng23/job-hunter-frontend
+    tag: latest
+    pullPolicy: Always
+  replicas: 2
+  port: 80
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+postgres:
+  image:
+    repository: postgres
+    tag: "16"
+  port: 5432
+  database: jobhunter
+  user: jobhunter_user
+  password: secure_password_123
+  storage: 5Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+ingress:
+  enabled: true
+  className: nginx
