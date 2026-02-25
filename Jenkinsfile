@@ -133,13 +133,20 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy with Helm') {
             steps {
-                echo 'Deploying to Kubernetes...'
-                sh 'kubectl rollout restart deployment/backend -n ${K8S_NAMESPACE}'
-                sh 'kubectl rollout restart deployment/frontend -n ${K8S_NAMESPACE}'
-                sh 'kubectl rollout status deployment/backend -n ${K8S_NAMESPACE}'
-                sh 'kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE}'
+                echo 'Deploying with Helm...'
+                sh '''
+                    helm upgrade job-hunter /var/jenkins_home/helm/job-hunter \
+                        --install \
+                        --namespace job-hunter \
+                        --values /var/jenkins_home/helm/job-hunter/values.yaml \
+                        --values /var/jenkins_home/helm/secrets.yaml \
+                        --set backend.image.tag=${BUILD_NUMBER} \
+                        --set frontend.image.tag=${BUILD_NUMBER} \
+                        --wait \
+                        --timeout 5m
+                '''
             }
         }
     }
