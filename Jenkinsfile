@@ -142,8 +142,8 @@ pipeline {
                         --namespace job-hunter \
                         --values /var/jenkins_home/helm/job-hunter/values.yaml \
                         --values /var/jenkins_home/helm/secrets.yaml \
-                        --set backend.image.tag=${BUILD_NUMBER} \
-                        --set frontend.image.tag=${BUILD_NUMBER} \
+                        --set backend.image.tag=latest \
+                        --set frontend.image.tag=latest \
                         --wait \
                         --timeout 5m
                 '''
