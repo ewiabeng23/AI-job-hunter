@@ -25,9 +25,7 @@ pipeline {
         stage('Trivy - Scan Source Code') {
             steps {
                 echo "Scanning source code for vulnerabilities..."
-                sh '''
-                    trivy fs --exit-code 0 --severity HIGH,CRITICAL --no-progress --format table . || true
-                '''
+                sh 'trivy fs --exit-code 0 --severity HIGH,CRITICAL --no-progress --format table . || true'
             }
         }
 
@@ -38,39 +36,8 @@ pipeline {
                     sh '''
                         echo "$KUBE_CONFIG_DATA" | base64 -d > ${KUBECONFIG_PATH}
                         export KUBECONFIG=${KUBECONFIG_PATH}
-
                         kubectl delete pod kaniko-backend -n ${JENKINS_NS} --ignore-not-found
-
-                        cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  name: kaniko-backend
-  namespace: ${JENKINS_NS}
-spec:
-  serviceAccountName: kaniko
-  restartPolicy: Never
-  containers:
-  - name: kaniko-backend
-    image: gcr.io/kaniko-project/executor:latest
-    args:
-    - "--dockerfile=Dockerfile"
-    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main",
-    - "--context-sub-path=backend"
-    - "--destination=${BACKEND_IMAGE}:${IMAGE_TAG}"
-    - "--destination=${BACKEND_IMAGE}:latest"
-    volumeMounts:
-    - name: docker-secret
-      mountPath: /kaniko/.docker
-  volumes:
-  - name: docker-secret
-    secret:
-      secretName: dockerhub-secret
-      items:
-      - key: .dockerconfigjson
-        path: config.json
-EOF
-
+                        kubectl apply -f kaniko/backend-pod.yaml
                         echo "Waiting for Kaniko backend to complete..."
                         kubectl wait pod/kaniko-backend --for=jsonpath='{.status.phase}'=Succeeded --timeout=300s -n ${JENKINS_NS}
                         kubectl logs kaniko-backend -n ${JENKINS_NS}
@@ -86,39 +53,8 @@ EOF
                     sh '''
                         echo "$KUBE_CONFIG_DATA" | base64 -d > ${KUBECONFIG_PATH}
                         export KUBECONFIG=${KUBECONFIG_PATH}
-
                         kubectl delete pod kaniko-frontend -n ${JENKINS_NS} --ignore-not-found
-
-                        cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  name: kaniko-frontend
-  namespace: ${JENKINS_NS}
-spec:
-  serviceAccountName: kaniko
-  restartPolicy: Never
-  containers:
-  - name: kaniko-frontend
-    image: gcr.io/kaniko-project/executor:latest
-    args:
-    - "--dockerfile=Dockerfile"
-    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main",
-    - "--context-sub-path=frontend"
-    - "--destination=${FRONTEND_IMAGE}:${IMAGE_TAG}"
-    - "--destination=${FRONTEND_IMAGE}:latest"
-    volumeMounts:
-    - name: docker-secret
-      mountPath: /kaniko/.docker
-  volumes:
-  - name: docker-secret
-    secret:
-      secretName: dockerhub-secret
-      items:
-      - key: .dockerconfigjson
-        path: config.json
-EOF
-
+                        kubectl apply -f kaniko/frontend-pod.yaml
                         echo "Waiting for Kaniko frontend to complete..."
                         kubectl wait pod/kaniko-frontend --for=jsonpath='{.status.phase}'=Succeeded --timeout=300s -n ${JENKINS_NS}
                         kubectl logs kaniko-frontend -n ${JENKINS_NS}
@@ -131,8 +67,8 @@ EOF
             steps {
                 echo "Scanning built images for vulnerabilities..."
                 sh '''
-                    trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress ${BACKEND_IMAGE}:${IMAGE_TAG} || true
-                    trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress ${FRONTEND_IMAGE}:${IMAGE_TAG} || true
+                    trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress ${BACKEND_IMAGE}:latest || true
+                    trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress ${FRONTEND_IMAGE}:latest || true
                 '''
             }
         }
@@ -144,8 +80,8 @@ EOF
                     sh '''
                         echo "$KUBE_CONFIG_DATA" | base64 -d > ${KUBECONFIG_PATH}
                         export KUBECONFIG=${KUBECONFIG_PATH}
-                        kubectl set image deployment/backend backend=${BACKEND_IMAGE}:${IMAGE_TAG} -n ${K8S_NAMESPACE}
-                        kubectl set image deployment/frontend frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} -n ${K8S_NAMESPACE}
+                        kubectl set image deployment/backend backend=${BACKEND_IMAGE}:latest -n ${K8S_NAMESPACE}
+                        kubectl set image deployment/frontend frontend=${FRONTEND_IMAGE}:latest -n ${K8S_NAMESPACE}
                         kubectl rollout status deployment/backend -n ${K8S_NAMESPACE} --timeout=5m
                         kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=5m
                     '''

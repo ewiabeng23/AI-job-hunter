@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kaniko-frontend
+  namespace: jenkins
+spec:
+  serviceAccountName: kaniko
+  restartPolicy: Never
+  containers:
+  - name: kaniko-frontend
+    image: gcr.io/kaniko-project/executor:latest
+    args:
+    - "--dockerfile=Dockerfile"
+    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main"
+    - "--context-sub-path=frontend"
+    - "--destination=ewiabeng23/job-hunter-frontend:latest"
+    volumeMounts:
+    - name: docker-secret
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: docker-secret
+    secret:
+      secretName: dockerhub-secret
+      items:
+      - key: .dockerconfigjson
+        path: config.json
