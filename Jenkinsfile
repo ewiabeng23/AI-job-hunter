@@ -54,8 +54,9 @@ spec:
   - name: kaniko-backend
     image: gcr.io/kaniko-project/executor:latest
     args:
-    - "--dockerfile=backend/Dockerfile"
-    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main"
+    - "--dockerfile=Dockerfile"
+    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main",
+    - "--context-sub-path=backend"
     - "--destination=${BACKEND_IMAGE}:${IMAGE_TAG}"
     - "--destination=${BACKEND_IMAGE}:latest"
     volumeMounts:
@@ -101,8 +102,9 @@ spec:
   - name: kaniko-frontend
     image: gcr.io/kaniko-project/executor:latest
     args:
-    - "--dockerfile=frontend/Dockerfile"
-    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main"
+    - "--dockerfile=Dockerfile"
+    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main",
+    - "--context-sub-path=frontend"
     - "--destination=${FRONTEND_IMAGE}:${IMAGE_TAG}"
     - "--destination=${FRONTEND_IMAGE}:latest"
     volumeMounts:
