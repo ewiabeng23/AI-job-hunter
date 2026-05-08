@@ -17,7 +17,7 @@ pipeline {
             steps {
                 echo "Pulling code from GitHub..."
                 git branch: 'main',
-                    credentialsId: 'github-credentials',
+                    credentialsId: 'GitHub-Cred',
                     url: 'https://github.com/ewiabeng23/AI-job-hunter.git'
             }
         }
@@ -26,11 +26,7 @@ pipeline {
             steps {
                 echo "Scanning source code for vulnerabilities..."
                 sh '''
-                    trivy fs --exit-code 0 \
-                             --severity HIGH,CRITICAL \
-                             --no-progress \
-                             --format table \
-                             . || true
+                    trivy fs --exit-code 0 --severity HIGH,CRITICAL --no-progress --format table . || true
                 '''
             }
         }
@@ -42,13 +38,39 @@ pipeline {
                     sh '''
                         echo "$KUBE_CONFIG_DATA" | base64 -d > ${KUBECONFIG_PATH}
                         export KUBECONFIG=${KUBECONFIG_PATH}
+
                         kubectl delete pod kaniko-backend -n ${JENKINS_NS} --ignore-not-found
-                        kubectl run kaniko-backend \
-                            --image=gcr.io/kaniko-project/executor:latest \
-                            --restart=Never \
-                            --namespace=${JENKINS_NS} \
-                            --serviceaccount=kaniko \
-                            --overrides={"spec":{"containers":[{"name":"kaniko-backend","image":"gcr.io/kaniko-project/executor:latest","args":["--dockerfile=backend/Dockerfile","--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main","--destination=${BACKEND_IMAGE}:${IMAGE_TAG}","--destination=${BACKEND_IMAGE}:latest"],"volumeMounts":[{"name":"docker-secret","mountPath":"/kaniko/.docker"}]}],"volumes":[{"name":"docker-secret","secret":{"secretName":"dockerhub-secret","items":[{"key":".dockerconfigjson","path":"config.json"}]}}]}}
+
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kaniko-backend
+  namespace: ${JENKINS_NS}
+spec:
+  serviceAccountName: kaniko
+  restartPolicy: Never
+  containers:
+  - name: kaniko-backend
+    image: gcr.io/kaniko-project/executor:latest
+    args:
+    - "--dockerfile=backend/Dockerfile"
+    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main"
+    - "--destination=${BACKEND_IMAGE}:${IMAGE_TAG}"
+    - "--destination=${BACKEND_IMAGE}:latest"
+    volumeMounts:
+    - name: docker-secret
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: docker-secret
+    secret:
+      secretName: dockerhub-secret
+      items:
+      - key: .dockerconfigjson
+        path: config.json
+EOF
+
+                        echo "Waiting for Kaniko backend to complete..."
                         kubectl wait pod/kaniko-backend --for=jsonpath='{.status.phase}'=Succeeded --timeout=300s -n ${JENKINS_NS}
                         kubectl logs kaniko-backend -n ${JENKINS_NS}
                     '''
@@ -63,13 +85,39 @@ pipeline {
                     sh '''
                         echo "$KUBE_CONFIG_DATA" | base64 -d > ${KUBECONFIG_PATH}
                         export KUBECONFIG=${KUBECONFIG_PATH}
+
                         kubectl delete pod kaniko-frontend -n ${JENKINS_NS} --ignore-not-found
-                        kubectl run kaniko-frontend \
-                            --image=gcr.io/kaniko-project/executor:latest \
-                            --restart=Never \
-                            --namespace=${JENKINS_NS} \
-                            --serviceaccount=kaniko \
-                            --overrides={"spec":{"containers":[{"name":"kaniko-frontend","image":"gcr.io/kaniko-project/executor:latest","args":["--dockerfile=frontend/Dockerfile","--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main","--destination=${FRONTEND_IMAGE}:${IMAGE_TAG}","--destination=${FRONTEND_IMAGE}:latest"],"volumeMounts":[{"name":"docker-secret","mountPath":"/kaniko/.docker"}]}],"volumes":[{"name":"docker-secret","secret":{"secretName":"dockerhub-secret","items":[{"key":".dockerconfigjson","path":"config.json"}]}}]}}
+
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kaniko-frontend
+  namespace: ${JENKINS_NS}
+spec:
+  serviceAccountName: kaniko
+  restartPolicy: Never
+  containers:
+  - name: kaniko-frontend
+    image: gcr.io/kaniko-project/executor:latest
+    args:
+    - "--dockerfile=frontend/Dockerfile"
+    - "--context=git://github.com/ewiabeng23/AI-job-hunter.git#refs/heads/main"
+    - "--destination=${FRONTEND_IMAGE}:${IMAGE_TAG}"
+    - "--destination=${FRONTEND_IMAGE}:latest"
+    volumeMounts:
+    - name: docker-secret
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: docker-secret
+    secret:
+      secretName: dockerhub-secret
+      items:
+      - key: .dockerconfigjson
+        path: config.json
+EOF
+
+                        echo "Waiting for Kaniko frontend to complete..."
                         kubectl wait pod/kaniko-frontend --for=jsonpath='{.status.phase}'=Succeeded --timeout=300s -n ${JENKINS_NS}
                         kubectl logs kaniko-frontend -n ${JENKINS_NS}
                     '''
