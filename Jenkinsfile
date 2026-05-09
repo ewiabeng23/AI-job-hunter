@@ -80,8 +80,8 @@ pipeline {
                     sh '''
                         echo "$KUBE_CONFIG_DATA" | base64 -d > ${KUBECONFIG_PATH}
                         export KUBECONFIG=${KUBECONFIG_PATH}
-                        kubectl set image deployment/backend backend=${BACKEND_IMAGE}:latest -n ${K8S_NAMESPACE}
-                        kubectl set image deployment/frontend frontend=${FRONTEND_IMAGE}:latest -n ${K8S_NAMESPACE}
+                        kubectl set image deployment/backend job-hunter-backend=${BACKEND_IMAGE}:latest -n ${K8S_NAMESPACE}
+                        kubectl set image deployment/frontend job-hunter-frontend=${FRONTEND_IMAGE}:latest -n ${K8S_NAMESPACE}
                         kubectl rollout status deployment/backend -n ${K8S_NAMESPACE} --timeout=5m
                         kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=5m
                     '''
