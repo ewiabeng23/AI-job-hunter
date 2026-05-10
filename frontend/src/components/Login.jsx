@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import axios from 'axios'
 import './Auth.css'
 
-const API_URL = 'http://3.82.138.233:31678/api'
+const API_URL = 'http://34.207.163.174:31678/api'
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('')

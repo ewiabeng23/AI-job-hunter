@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './Dashboard.css'
 
-const API_URL = 'http://3.82.138.233:31678/api'
+const API_URL = 'http://34.207.163.174:31678/api'
 
 function Dashboard({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('search')
