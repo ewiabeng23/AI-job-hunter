@@ -27,3 +27,18 @@ output "configure_kubectl" {
   description = "Command to configure kubectl"
   value       = "aws eks update-kubeconfig --region us-east-1 --name ${module.eks.cluster_name}"
 }
+
+output "grafana_url" {
+  description = "Grafana dashboard URL"
+  value       = "http://<node-ip>:32001"
+}
+
+output "kibana_url" {
+  description = "Kibana dashboard URL"
+  value       = "http://<node-ip>:32002"
+}
+
+output "app_url" {
+  description = "Application URL"
+  value       = "http://<node-ip>:31678"
+}

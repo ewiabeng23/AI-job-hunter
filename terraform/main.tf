@@ -35,3 +35,13 @@ module "eks" {
   node_max_size      = var.eks_node_max_size
   node_desired_size  = var.eks_node_desired_size
 }
+
+# Monitoring Module - Prometheus, Grafana, ELK
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  eks_cluster_name = module.eks.cluster_name
+  grafana_password = "admin123"
+
+  depends_on = [module.eks]
+}
