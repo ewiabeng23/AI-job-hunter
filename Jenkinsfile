@@ -75,15 +75,18 @@ pipeline {
 
         stage('Deploy to EKS') {
             steps {
-                echo "Deploying to EKS..."
+                echo "Deploying to EKS with Helm..."
                 withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBE_CONFIG_DATA')]) {
                     sh '''
                         echo "$KUBE_CONFIG_DATA" | base64 -d > ${KUBECONFIG_PATH}
                         export KUBECONFIG=${KUBECONFIG_PATH}
-                        kubectl set image deployment/backend job-hunter-backend=${BACKEND_IMAGE}:latest -n ${K8S_NAMESPACE}
-                        kubectl set image deployment/frontend job-hunter-frontend=${FRONTEND_IMAGE}:latest -n ${K8S_NAMESPACE}
-                        kubectl rollout status deployment/backend -n ${K8S_NAMESPACE} --timeout=5m
-                        kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=5m
+
+                        helm upgrade --install job-hunter ./helm/job-hunter \
+                            --namespace ${K8S_NAMESPACE} \
+                            --set backend.image.tag=latest \
+                            --set frontend.image.tag=latest \
+                            --wait \
+                            --timeout 5m
                     '''
                 }
             }
@@ -99,8 +102,8 @@ pipeline {
                         kubectl get pods -n ${K8S_NAMESPACE}
                         echo "=== Services ==="
                         kubectl get svc -n ${K8S_NAMESPACE}
-                        echo "=== Ingress ==="
-                        kubectl get ingress -n ${K8S_NAMESPACE}
+                        echo "=== Helm Release ==="
+                        helm list -n ${K8S_NAMESPACE}
                     '''
                 }
             }
