@@ -35,6 +35,13 @@ spec:
             secretKeyRef:
               name: job-hunter-secrets
               key: anthropic-api-key
+        resources:
+          requests:
+            cpu: {{ .Values.resources.backend.requests.cpu }}
+            memory: {{ .Values.resources.backend.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.backend.limits.cpu }}
+            memory: {{ .Values.resources.backend.limits.memory }}
 ---
 apiVersion: v1
 kind: Service

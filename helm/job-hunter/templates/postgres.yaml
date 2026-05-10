@@ -25,6 +25,13 @@ spec:
           value: {{ .Values.postgres.user }}
         - name: POSTGRES_PASSWORD
           value: {{ .Values.postgres.password }}
+        resources:
+          requests:
+            cpu: {{ .Values.resources.postgres.requests.cpu }}
+            memory: {{ .Values.resources.postgres.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.postgres.limits.cpu }}
+            memory: {{ .Values.resources.postgres.limits.memory }}
 ---
 apiVersion: v1
 kind: Service
