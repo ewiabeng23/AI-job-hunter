@@ -21,11 +21,20 @@ spec:
         - containerPort: {{ .Values.backend.port }}
         env:
         - name: DATABASE_URL
-          value: {{ .Values.backend.env.databaseUrl }}
+          valueFrom:
+            secretKeyRef:
+              name: job-hunter-secrets
+              key: database-url
         - name: SECRET_KEY
-          value: {{ .Values.backend.env.secretKey }}
+          valueFrom:
+            secretKeyRef:
+              name: job-hunter-secrets
+              key: secret-key
         - name: ANTHROPIC_API_KEY
-          value: {{ .Values.backend.env.anthropicApiKey }}
+          valueFrom:
+            secretKeyRef:
+              name: job-hunter-secrets
+              key: anthropic-api-key
 ---
 apiVersion: v1
 kind: Service
