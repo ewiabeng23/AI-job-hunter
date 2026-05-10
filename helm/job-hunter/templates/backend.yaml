@@ -15,47 +15,17 @@ spec:
     spec:
       containers:
       - name: backend
-        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        image: {{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}
         imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
         ports:
         - containerPort: {{ .Values.backend.port }}
         env:
         - name: DATABASE_URL
-          value: "postgresql://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-service:{{ .Values.postgres.port }}/{{ .Values.postgres.database }}"
-        - name: ANTHROPIC_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: jobhunter-secrets
-              key: ANTHROPIC_API_KEY
+          value: {{ .Values.backend.env.databaseUrl }}
         - name: SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: jobhunter-secrets
-              key: SECRET_KEY
-        - name: ENVIRONMENT
-          valueFrom:
-            configMapKeyRef:
-              name: jobhunter-config
-              key: ENVIRONMENT
-        resources:
-          requests:
-            cpu: {{ .Values.backend.resources.requests.cpu }}
-            memory: {{ .Values.backend.resources.requests.memory }}
-          limits:
-            cpu: {{ .Values.backend.resources.limits.cpu }}
-            memory: {{ .Values.backend.resources.limits.memory }}
-        livenessProbe:
-          httpGet:
-            path: /
-            port: {{ .Values.backend.port }}
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: {{ .Values.backend.port }}
-          initialDelaySeconds: 10
-          periodSeconds: 5
+          value: {{ .Values.backend.env.secretKey }}
+        - name: ANTHROPIC_API_KEY
+          value: {{ .Values.backend.env.anthropicApiKey }}
 ---
 apiVersion: v1
 kind: Service
@@ -66,6 +36,5 @@ spec:
   selector:
     app: backend
   ports:
-  - port: 80
+  - port: {{ .Values.backend.port }}
     targetPort: {{ .Values.backend.port }}
-  type: ClusterIP

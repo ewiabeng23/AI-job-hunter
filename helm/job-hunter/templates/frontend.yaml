@@ -15,17 +15,10 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+        image: {{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}
         imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
         ports:
         - containerPort: {{ .Values.frontend.port }}
-        resources:
-          requests:
-            cpu: {{ .Values.frontend.resources.requests.cpu }}
-            memory: {{ .Values.frontend.resources.requests.memory }}
-          limits:
-            cpu: {{ .Values.frontend.resources.limits.cpu }}
-            memory: {{ .Values.frontend.resources.limits.memory }}
 ---
 apiVersion: v1
 kind: Service
@@ -36,6 +29,5 @@ spec:
   selector:
     app: frontend
   ports:
-  - port: 80
+  - port: {{ .Values.frontend.port }}
     targetPort: {{ .Values.frontend.port }}
-  type: ClusterIP

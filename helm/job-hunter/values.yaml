@@ -1,12 +1,7 @@
+# Namespace
 namespace: job-hunter
 
-config:
-  environment: "production"
-
-secrets:
-  anthropicApiKey: "REPLACE_WITH_REAL_KEY"
-  secretKey: "REPLACE_WITH_REAL_SECRET_KEY"
-
+# Backend configuration
 backend:
   image:
     repository: ewiabeng23/job-hunter-backend
@@ -14,14 +9,12 @@ backend:
     pullPolicy: Always
   replicas: 2
   port: 8001
-  resources:
-    requests:
-      cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
+  env:
+    databaseUrl: "postgresql://jobhunter_user:secure_password_123@postgres-service:5432/jobhunter"
+    secretKey: "REPLACE_WITH_REAL_SECRET"
+    anthropicApiKey: "REPLACE_WITH_REAL_KEY"
 
+# Frontend configuration
 frontend:
   image:
     repository: ewiabeng23/job-hunter-frontend
@@ -29,31 +22,21 @@ frontend:
     pullPolicy: Always
   replicas: 2
   port: 80
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 250m
-      memory: 256Mi
 
+# PostgreSQL configuration
 postgres:
   image:
     repository: postgres
     tag: "16"
+  replicas: 1
   port: 5432
   database: jobhunter
   user: jobhunter_user
   password: secure_password_123
   storage: 5Gi
-  resources:
-    requests:
-      cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
 
+# Ingress configuration
 ingress:
   enabled: true
   className: nginx
+  nodePort: 31678
