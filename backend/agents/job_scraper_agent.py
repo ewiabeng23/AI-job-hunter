@@ -152,7 +152,7 @@ class JobScraperAgent:
                     "experience": "Mid-Level",
                     "job_type": job_type,
                     "remote": self._detect_remote(description),
-                    "easy_apply": False,
+                    "easy_apply": self._detect_easy_apply(description),
                     "posted_date": created,
                     "posted_days_ago": days_ago,
                     "description": description[:500] + "..." if len(description) > 500 else description,
@@ -166,6 +166,13 @@ class JobScraperAgent:
                 print(f"Error parsing job: {e}")
                 continue
         return jobs
+
+    def _detect_easy_apply(self, description: str) -> bool:
+        desc_lower = description.lower()
+        signals = ["easy apply", "quick apply", "one click", "apply now",
+                   "apply directly", "apply online", "apply today",
+                   "no cover letter", "apply in minutes", "simple application"]
+        return any(s in desc_lower for s in signals)
 
     def _detect_remote(self, description: str) -> str:
         desc_lower = description.lower()

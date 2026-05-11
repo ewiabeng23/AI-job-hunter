@@ -23,6 +23,7 @@ function Dashboard({ user, token, onLogout }) {
   const [minSalary, setMinSalary] = useState('')
   const [maxSalary, setMaxSalary] = useState('')
   const [keywords, setKeywords] = useState('')
+  const [easyApplyOnly, setEasyApplyOnly] = useState(false)
   
   // Selected job
   const [selectedJob, setSelectedJob] = useState(null)
@@ -116,7 +117,8 @@ function Dashboard({ user, token, onLogout }) {
           min_salary: minSalary,
           max_salary: maxSalary,
           keywords: keywords.split(',').map(k => k.trim()),
-          max_results: 20
+          max_results: 20,
+          easy_apply_only: easyApplyOnly
         }
       }, axiosConfig)
       
@@ -349,6 +351,16 @@ function Dashboard({ user, token, onLogout }) {
                   />
                 </div>
 
+                <div className="form-group easy-apply-toggle">
+                  <label className="toggle-label">
+                    <input
+                      type="checkbox"
+                      checked={easyApplyOnly}
+                      onChange={(e) => setEasyApplyOnly(e.target.checked)}
+                    />
+                    ⚡ Easy Apply only (jobs with simple 1-click application)
+                  </label>
+                </div>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? '🔄 Searching...' : '🚀 Search Jobs'}
                 </button>
@@ -372,6 +384,9 @@ function Dashboard({ user, token, onLogout }) {
                       <p className="job-posted">📅 {job.posted_days_ago}d ago</p>
                       {job.keyword_matches > 0 && (
                         <p className="job-keywords">🔑 {job.keyword_matches} keywords match</p>
+                      )}
+                      {job.easy_apply && (
+                        <span className="easy-apply-badge">⚡ Easy Apply</span>
                       )}
                       <button 
                         onClick={() => applyToJob(job)}
@@ -425,6 +440,16 @@ function Dashboard({ user, token, onLogout }) {
                     rows={15}
                     required
                   />
+                </div>
+                <div className="form-group easy-apply-toggle">
+                  <label className="toggle-label">
+                    <input
+                      type="checkbox"
+                      checked={easyApplyOnly}
+                      onChange={(e) => setEasyApplyOnly(e.target.checked)}
+                    />
+                    ⚡ Easy Apply only (jobs with simple 1-click application)
+                  </label>
                 </div>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? '🔄 Saving...' : '💾 Save CV'}
