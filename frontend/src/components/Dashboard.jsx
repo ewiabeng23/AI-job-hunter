@@ -18,11 +18,11 @@ function Dashboard({ user, token, onLogout }) {
   const [showCvForm, setShowCvForm] = useState(false)
   
   // Search state
-  const [jobTitle, setJobTitle] = useState('DevOps Engineer')
-  const [location, setLocation] = useState('London, UK')
-  const [minSalary, setMinSalary] = useState(60000)
-  const [maxSalary, setMaxSalary] = useState(150000)
-  const [keywords, setKeywords] = useState('AWS, Docker, Kubernetes')
+  const [jobTitle, setJobTitle] = useState('')
+  const [location, setLocation] = useState('')
+  const [minSalary, setMinSalary] = useState('')
+  const [maxSalary, setMaxSalary] = useState('')
+  const [keywords, setKeywords] = useState('')
   
   // Selected job
   const [selectedJob, setSelectedJob] = useState(null)
