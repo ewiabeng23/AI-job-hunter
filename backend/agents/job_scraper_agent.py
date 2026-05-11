@@ -19,7 +19,7 @@ class JobScraperAgent:
         job_title = filters.get("job_title", "")
         location = filters.get("location", "")
         min_salary = filters.get("min_salary", 0)
-        max_salary = filters.get("max_salary", 999999)
+        max_salary = filters.get("max_salary", 0)
         keywords = filters.get("keywords", [])
         max_results = filters.get("max_results", 20)
 
@@ -30,16 +30,17 @@ class JobScraperAgent:
         if keywords:
             what = f"{job_title} {' '.join(keywords)}"
 
-        # Extract country from location (default GB)
+        # Detect country from location
         country = "gb"
-        if "us" in location.lower() or "united states" in location.lower():
+        loc_lower = location.lower()
+        if "united states" in loc_lower or ", us" in loc_lower:
             country = "us"
-        elif "au" in location.lower() or "australia" in location.lower():
+        elif "australia" in loc_lower or ", au" in loc_lower:
             country = "au"
-        elif "ca" in location.lower() or "canada" in location.lower():
+        elif "canada" in loc_lower or ", ca" in loc_lower:
             country = "ca"
 
-        # Extract city/location
+        # Extract city
         where = location.split(",")[0].strip() if "," in location else location
 
         all_jobs = []
@@ -53,11 +54,13 @@ class JobScraperAgent:
                     "results_per_page": 10,
                     "what": what,
                     "where": where,
-                    "salary_min": min_salary if min_salary > 0 else None,
-                    "content-type": "application/json"
                 }
-                # Remove None values
-                params = {k: v for k, v in params.items() if v is not None}
+
+                # Add salary filters only if provided
+                if min_salary and min_salary > 0:
+                    params["salary_min"] = min_salary
+                if max_salary and max_salary > 0:
+                    params["salary_max"] = max_salary
 
                 url = f"{self.base_url}/{country}/search/{page}"
 
@@ -66,11 +69,13 @@ class JobScraperAgent:
                         if response.status == 200:
                             data = await response.json()
                             results = data.get("results", [])
-                            print(f"✅ Page {page}: Found {len(results)} jobs")
+                            total = data.get("count", 0)
+                            print(f"✅ Page {page}: {len(results)} jobs (total: {total})")
                             jobs = self._parse_adzuna_jobs(results, keywords)
                             all_jobs.extend(jobs)
                         else:
-                            print(f"❌ Adzuna API error: {response.status}")
+                            text = await response.text()
+                            print(f"❌ Adzuna API error {response.status}: {text}")
                             break
                 except Exception as e:
                     print(f"❌ Error fetching jobs: {e}")
@@ -80,7 +85,7 @@ class JobScraperAgent:
 
         # Sort by relevance
         all_jobs.sort(key=lambda j: (
-            j.get("keyword_matches", 0) * 10 + (30 - j.get("posted_days_ago", 30))
+            j.get("keyword_matches", 0) * 10 + max(0, 30 - j.get("posted_days_ago", 30))
         ), reverse=True)
 
         top_jobs = all_jobs[:max_results]
@@ -92,7 +97,7 @@ class JobScraperAgent:
         jobs = []
         for r in results:
             try:
-                # Calculate days ago
+                # Days ago
                 created = r.get("created", "")
                 days_ago = 0
                 if created:
@@ -105,14 +110,16 @@ class JobScraperAgent:
                 # Salary
                 sal_min = r.get("salary_min", 0) or 0
                 sal_max = r.get("salary_max", 0) or 0
-                if sal_min and sal_max:
+                if sal_min and sal_max and sal_min != sal_max:
                     salary = f"£{int(sal_min):,} - £{int(sal_max):,}"
+                elif sal_max:
+                    salary = f"Up to £{int(sal_max):,}"
                 elif sal_min:
                     salary = f"£{int(sal_min):,}+"
                 else:
                     salary = "Salary not specified"
 
-                # Contract type
+                # Job type
                 contract_time = r.get("contract_time", "")
                 contract_type = r.get("contract_type", "")
                 if contract_time == "full_time":
@@ -133,9 +140,6 @@ class JobScraperAgent:
                     desc_lower = description.lower()
                     keyword_matches = sum(1 for kw in keywords if kw.lower() in desc_lower)
 
-                # Relevance score
-                relevance_score = keyword_matches * 10 + max(0, 30 - days_ago)
-
                 job = {
                     "id": r.get("id", ""),
                     "title": r.get("title", ""),
@@ -154,7 +158,7 @@ class JobScraperAgent:
                     "description": description[:500] + "..." if len(description) > 500 else description,
                     "url": r.get("redirect_url", ""),
                     "keyword_matches": keyword_matches,
-                    "relevance_score": relevance_score,
+                    "relevance_score": keyword_matches * 10 + max(0, 30 - days_ago),
                     "source": "Adzuna"
                 }
                 jobs.append(job)
@@ -164,7 +168,6 @@ class JobScraperAgent:
         return jobs
 
     def _detect_remote(self, description: str) -> str:
-        """Detect remote working from job description"""
         desc_lower = description.lower()
         if "fully remote" in desc_lower or "100% remote" in desc_lower:
             return "Remote"
@@ -172,5 +175,4 @@ class JobScraperAgent:
             return "Hybrid"
         elif "remote" in desc_lower:
             return "Remote"
-        else:
-            return "On-site"
+        return "On-site"
