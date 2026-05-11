@@ -1,5 +1,6 @@
 import asyncio
 import aiohttp
+import ssl
 from datetime import datetime
 from typing import List, Dict
 import os
@@ -30,7 +31,7 @@ class JobScraperAgent:
         if keywords:
             what = f"{job_title} {' '.join(keywords)}"
 
-        # Detect country from location
+        # Detect country
         country = "gb"
         loc_lower = location.lower()
         if "united states" in loc_lower or ", us" in loc_lower:
@@ -46,7 +47,13 @@ class JobScraperAgent:
         all_jobs = []
         pages_to_fetch = min(3, (max_results // 10) + 1)
 
-        async with aiohttp.ClientSession() as session:
+        # SSL context - disable verification for container compatibility
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
+        connector = aiohttp.TCPConnector(ssl=ssl_ctx)
+
+        async with aiohttp.ClientSession(connector=connector) as session:
             for page in range(1, pages_to_fetch + 1):
                 params = {
                     "app_id": self.adzuna_app_id,
@@ -56,48 +63,46 @@ class JobScraperAgent:
                     "where": where,
                 }
 
-                # Add salary filters only if provided
                 if min_salary and min_salary > 0:
                     params["salary_min"] = min_salary
                 if max_salary and max_salary > 0:
                     params["salary_max"] = max_salary
 
                 url = f"{self.base_url}/{country}/search/{page}"
+                print(f"🔍 Calling: {url} with params: {params}")
 
                 try:
-                    async with session.get(url, params=params) as response:
+                    async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                        print(f"📡 Response status: {response.status}")
                         if response.status == 200:
                             data = await response.json()
                             results = data.get("results", [])
                             total = data.get("count", 0)
-                            print(f"✅ Page {page}: {len(results)} jobs (total: {total})")
+                            print(f"✅ Page {page}: {len(results)} jobs (total available: {total})")
                             jobs = self._parse_adzuna_jobs(results, keywords)
                             all_jobs.extend(jobs)
                         else:
                             text = await response.text()
-                            print(f"❌ Adzuna API error {response.status}: {text}")
+                            print(f"❌ Adzuna error {response.status}: {text}")
                             break
                 except Exception as e:
-                    print(f"❌ Error fetching jobs: {e}")
+                    print(f"❌ Exception: {type(e).__name__}: {e}")
                     break
 
                 await asyncio.sleep(0.3)
 
-        # Sort by relevance
         all_jobs.sort(key=lambda j: (
             j.get("keyword_matches", 0) * 10 + max(0, 30 - j.get("posted_days_ago", 30))
         ), reverse=True)
 
         top_jobs = all_jobs[:max_results]
-        print(f"\n✅ Returning {len(top_jobs)} real jobs from Adzuna")
+        print(f"\n✅ Returning {len(top_jobs)} real jobs")
         return top_jobs
 
     def _parse_adzuna_jobs(self, results: List[Dict], keywords: List[str]) -> List[Dict]:
-        """Parse Adzuna API response into our job format"""
         jobs = []
         for r in results:
             try:
-                # Days ago
                 created = r.get("created", "")
                 days_ago = 0
                 if created:
@@ -107,7 +112,6 @@ class JobScraperAgent:
                     except:
                         days_ago = 0
 
-                # Salary
                 sal_min = r.get("salary_min", 0) or 0
                 sal_max = r.get("salary_max", 0) or 0
                 if sal_min and sal_max and sal_min != sal_max:
@@ -119,7 +123,6 @@ class JobScraperAgent:
                 else:
                     salary = "Salary not specified"
 
-                # Job type
                 contract_time = r.get("contract_time", "")
                 contract_type = r.get("contract_type", "")
                 if contract_time == "full_time":
@@ -131,10 +134,7 @@ class JobScraperAgent:
                 else:
                     job_type = "Full-time"
 
-                # Description
                 description = r.get("description", "")
-
-                # Keyword matching
                 keyword_matches = 0
                 if keywords and description:
                     desc_lower = description.lower()
