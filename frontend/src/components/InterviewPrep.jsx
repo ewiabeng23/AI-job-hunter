@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import './InterviewPrep.css'
 
-const API_URL = 'http://34.207.163.174:31678/api'
+const API_URL = 'http://3.216.134.198:31678/api'
 
 function InterviewPrep({ job, token, onClose }) {
   const [prepData, setPrepData] = useState(null)

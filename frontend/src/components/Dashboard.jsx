@@ -3,7 +3,7 @@ import axios from 'axios'
 import './Dashboard.css'
 import InterviewPrep from './InterviewPrep'
 
-const API_URL = 'http://34.207.163.174:31678/api'
+const API_URL = 'http://3.216.134.198:31678/api'
 
 function Dashboard({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('search')
