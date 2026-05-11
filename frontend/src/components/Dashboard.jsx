@@ -224,7 +224,7 @@ function Dashboard({ user, token, onLogout }) {
                   <h3>📄 Custom CV (Tailored for {modalData.job.company})</h3>
                   <button onClick={downloadCV} className="btn-download">⬇️ Download CV</button>
                 </div>
-                <pre className="cv-preview">{modalData.customCV}</pre>
+                
               </div>
 
               <div className="cover-section">
@@ -232,7 +232,7 @@ function Dashboard({ user, token, onLogout }) {
                   <h3>✉️ Cover Letter</h3>
                   <button onClick={downloadCoverLetter} className="btn-download">⬇️ Download Cover Letter</button>
                 </div>
-                <pre className="cover-preview">{modalData.coverLetter}</pre>
+                
               </div>
 
               <div className="modal-footer">
