@@ -176,15 +176,61 @@ function Dashboard({ user, token, onLogout }) {
     }
   }
 
-  const downloadCV = () => {
+  const downloadCV = async () => {
     if (!modalData?.customCV) return
-    
-    const blob = new Blob([modalData.customCV], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `CV_${modalData.job.company}_${modalData.job.title}.txt`
-    a.click()
+    try {
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } = await import('docx')
+      const { saveAs } = await import('file-saver')
+      const cvLines = modalData.customCV.split('\n').filter(l => l.trim())
+      const docParagraphs = cvLines.map(line => {
+        const trimmed = line.trim()
+        const isHeader = trimmed === trimmed.toUpperCase() && trimmed.length > 3 && trimmed.length < 50
+        const isSubHeader = trimmed.endsWith(':') && trimmed.length < 60
+        if (isHeader) {
+          return new Paragraph({
+            text: trimmed,
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 240, after: 120 }
+          })
+        } else if (isSubHeader) {
+          return new Paragraph({
+            children: [new TextRun({ text: trimmed, bold: true, size: 24 })],
+            spacing: { before: 160, after: 80 }
+          })
+        } else if (trimmed.startsWith('-') || trimmed.startsWith('\u2022')) {
+          return new Paragraph({
+            text: trimmed.replace(/^[-\u2022]\s*/, ''),
+            bullet: { level: 0 },
+            spacing: { after: 60 }
+          })
+        } else {
+          return new Paragraph({
+            children: [new TextRun({ text: trimmed, size: 22 })],
+            spacing: { after: 80 }
+          })
+        }
+      })
+      const doc = new Document({
+        sections: [{ properties: {}, children: [
+          new Paragraph({
+            children: [new TextRun({ text: modalData.job.title + ' — ' + modalData.job.company, bold: true, size: 28 })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 }
+          }),
+          ...docParagraphs
+        ]}]
+      })
+      const blob = await Packer.toBlob(doc)
+      saveAs(blob, `CV_${modalData.job.company}_${modalData.job.title}.docx`)
+    } catch(err) {
+      console.error('docx error:', err)
+      const blob = new Blob([modalData.customCV], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `CV_${modalData.job.company}_${modalData.job.title}.txt`
+      a.click()
+    }
   }
 
   const downloadCoverLetter = () => {
