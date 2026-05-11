@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx'
+import { saveAs } from 'file-saver'
 import axios from 'axios'
 import './Dashboard.css'
 import InterviewPrep from './InterviewPrep'

@@ -167,6 +167,35 @@ Return ONLY the cover letter text (no "Dear Hiring Manager" - start with the com
         
         return response.content[0].text
     
+    async def humanise_cv(self, cv_text):
+        """Rewrite CV to sound human and bypass AI detection tools"""
+        self.status = "humanising_cv"
+        prompt = f"""You are rewriting a CV to sound completely human-written.
+
+CV to rewrite:
+{cv_text}
+
+Rules:
+1. NEVER use these AI giveaway words: leverage, spearhead, dynamic, passionate, innovative, utilise, facilitate, streamline, robust, cutting-edge, synergy, proactive, results-driven, detail-oriented, team player
+2. Vary sentence length — mix short punchy sentences with longer ones
+3. Use natural first-person where appropriate ("I built", "I led")
+4. Add specific numbers and real-sounding details
+5. Use contractions occasionally (I've, I'd, wasn't)
+6. Avoid perfect parallel structure in bullet points — vary them
+7. Write like a real person talking about their work, not a template
+8. Keep all the facts and achievements — just make the language natural
+9. Avoid starting every bullet with a verb — vary the openings
+10. Remove any filler phrases like "responsible for" or "tasked with"
+
+Return the complete rewritten CV. Keep the same structure and sections.
+"""
+        response = self.claude.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=3000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.content[0].text
+
     async def process_job_application(self, job_data, user_profile):
         """Complete end-to-end job application process"""
         
