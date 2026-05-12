@@ -13,7 +13,9 @@ variables:
 
 trivy-source-scan:
   stage: scan-source
-  image: aquasec/trivy:latest
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
   script:
     - trivy fs --exit-code 0 --severity HIGH,CRITICAL --no-progress --format table .
   tags:
@@ -55,7 +57,9 @@ build-frontend:
 
 trivy-image-scan:
   stage: scan-images
-  image: aquasec/trivy:latest
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
   script:
     - trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress $BACKEND_IMAGE:latest
     - trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress $FRONTEND_IMAGE:latest
