@@ -24,11 +24,8 @@ trivy-source-scan:
 build-backend:
   stage: build
   image: docker:24.0.5
-  services:
-    - docker:24.0.5-dind
   variables:
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
   before_script:
     - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
   script:
@@ -41,11 +38,8 @@ build-backend:
 build-frontend:
   stage: build
   image: docker:24.0.5
-  services:
-    - docker:24.0.5-dind
   variables:
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
   before_script:
     - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
   script:
