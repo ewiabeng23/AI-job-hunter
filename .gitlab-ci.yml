@@ -1,0 +1,105 @@
+stages:
+  - scan-source
+  - build
+  - scan-images
+  - deploy
+  - health-check
+
+variables:
+  DOCKERHUB_USER: "ewiabeng23"
+  BACKEND_IMAGE: "$DOCKERHUB_USER/job-hunter-backend"
+  FRONTEND_IMAGE: "$DOCKERHUB_USER/job-hunter-frontend"
+  K8S_NAMESPACE: "job-hunter"
+
+trivy-source-scan:
+  stage: scan-source
+  image: aquasec/trivy:latest
+  script:
+    - trivy fs --exit-code 0 --severity HIGH,CRITICAL --no-progress --format table .
+  tags:
+    - docker
+
+build-backend:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: "tcp://docker:2375"
+  before_script:
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
+  script:
+    - docker build -t $BACKEND_IMAGE:latest -t $BACKEND_IMAGE:$CI_PIPELINE_IID ./backend
+    - docker push $BACKEND_IMAGE:latest
+    - docker push $BACKEND_IMAGE:$CI_PIPELINE_IID
+  tags:
+    - docker
+
+build-frontend:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: "tcp://docker:2375"
+  before_script:
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
+  script:
+    - docker build -t $FRONTEND_IMAGE:latest -t $FRONTEND_IMAGE:$CI_PIPELINE_IID ./frontend
+    - docker push $FRONTEND_IMAGE:latest
+    - docker push $FRONTEND_IMAGE:$CI_PIPELINE_IID
+  tags:
+    - docker
+
+trivy-image-scan:
+  stage: scan-images
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress $BACKEND_IMAGE:latest
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress $FRONTEND_IMAGE:latest
+  tags:
+    - docker
+
+deploy:
+  stage: deploy
+  image: alpine/helm:3.14.0
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG_DATA" | base64 -d > ~/.kube/config
+    - chmod 600 ~/.kube/config
+    - apk add --no-cache kubectl
+  script:
+    - kubectl label namespace $K8S_NAMESPACE app.kubernetes.io/managed-by=Helm --overwrite || true
+    - kubectl annotate namespace $K8S_NAMESPACE meta.helm.sh/release-name=job-hunter meta.helm.sh/release-namespace=$K8S_NAMESPACE --overwrite || true
+    - helm upgrade --install job-hunter ./helm/job-hunter
+        --namespace $K8S_NAMESPACE
+        --set backend.image.tag=latest
+        --set frontend.image.tag=latest
+        --wait
+        --timeout 5m
+  tags:
+    - docker
+  only:
+    - main
+
+health-check:
+  stage: health-check
+  image: alpine/helm:3.14.0
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG_DATA" | base64 -d > ~/.kube/config
+    - chmod 600 ~/.kube/config
+    - apk add --no-cache kubectl
+  script:
+    - echo "=== Pods ==="
+    - kubectl get pods -n $K8S_NAMESPACE
+    - echo "=== Services ==="
+    - kubectl get svc -n $K8S_NAMESPACE
+    - echo "=== Helm Release ==="
+    - helm list -n $K8S_NAMESPACE
+  tags:
+    - docker
+  only:
+    - main
