@@ -62,7 +62,9 @@ trivy-image-scan:
 
 deploy:
   stage: deploy
-  image: alpine/helm:3.14.0
+  image:
+    name: alpine/helm:3.14.0
+    entrypoint: [""]
   before_script:
     - mkdir -p ~/.kube
     - echo "$KUBECONFIG_DATA" | base64 -d > ~/.kube/config
@@ -79,7 +81,9 @@ deploy:
 
 health-check:
   stage: health-check
-  image: alpine/helm:3.14.0
+  image:
+    name: alpine/helm:3.14.0
+    entrypoint: [""]
   before_script:
     - mkdir -p ~/.kube
     - echo "$KUBECONFIG_DATA" | base64 -d > ~/.kube/config
