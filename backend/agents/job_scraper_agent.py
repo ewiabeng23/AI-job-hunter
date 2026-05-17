@@ -10,8 +10,8 @@ class JobScraperAgent:
 
     def __init__(self):
         self.name = "Job Scraper"
-        self.adzuna_app_id = os.getenv("ADZUNA_APP_ID", "17f1be01")
-        self.adzuna_app_key = os.getenv("ADZUNA_APP_KEY", "1e4d1f9a78950983d2e04aab1667cd00")
+        self.adzuna_app_id = os.getenv("ADZUNA_APP_ID")
+        self.adzuna_app_key = os.getenv("ADZUNA_APP_KEY")
         self.base_url = "https://api.adzuna.com/v1/api/jobs"
 
     async def search_jobs(self, filters: Dict) -> List[Dict]:

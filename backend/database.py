@@ -4,7 +4,7 @@ from models import Base
 import os
 
 # Get database URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://jobhunter_user:secure_password_123@localhost:5432/jobhunter")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Create engine
 engine = create_engine(DATABASE_URL)

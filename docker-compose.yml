@@ -1,39 +1,33 @@
 version: '3.8'
-
 services:
-  postgres:
-    image: postgres:16
-    container_name: jobhunter-db
-    environment:
-      POSTGRES_USER: jobhunter_user
-      POSTGRES_PASSWORD: secure_password_123
-      POSTGRES_DB: jobhunter
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jobhunter_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: jobhunter-backend
-    environment:
-      DATABASE_URL: postgresql://jobhunter_user:secure_password_123@postgres:5432/jobhunter
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      SECRET_KEY: ${SECRET_KEY}
-      ENVIRONMENT: production
+    build: ./backend
     ports:
       - "8001:8001"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - ADZUNA_APP_ID=${ADZUNA_APP_ID}
+      - ADZUNA_APP_KEY=${ADZUNA_APP_KEY}
     depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
+      - postgres
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=jobhunter
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
   postgres_data:

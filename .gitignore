@@ -10,3 +10,6 @@ helm/job-hunter/secrets.yaml
 terraform.tfstate
 terraform.tfstate.backup
 *.tfvars
+k8s/secret.yaml
+secrets.yaml
+*.pem
