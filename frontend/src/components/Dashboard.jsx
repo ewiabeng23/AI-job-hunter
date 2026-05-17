@@ -5,7 +5,7 @@ import axios from 'axios'
 import './Dashboard.css'
 import InterviewPrep from './InterviewPrep'
 
-const API_URL = 'http://3.216.134.198:31678/api'
+const API_URL = 'https://jobhunter.wigsbydiko.co.uk/api'
 
 function Dashboard({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('search')

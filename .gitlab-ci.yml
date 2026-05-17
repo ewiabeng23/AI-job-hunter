@@ -4,6 +4,7 @@ stages:
   - scan-images
   - deploy
   - health-check
+  - test
 
 variables:
   DOCKERHUB_USER: "ewiabeng23"
@@ -109,3 +110,25 @@ health-check:
     - docker
   only:
     - main
+
+e2e-tests:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.44.0-jammy
+  variables:
+    BASE_URL: "https://jobhunter.wigsbydiko.co.uk"
+  script:
+    - cd tests
+    - npm install
+    - npx playwright install chromium
+    - npx playwright test --reporter=junit,html
+  artifacts:
+    when: always
+    paths:
+      - tests/playwright-report/
+      - tests/results.xml
+    reports:
+      junit: tests/results.xml
+    expire_in: 7 days
+  only:
+    - main
+  allow_failure: true

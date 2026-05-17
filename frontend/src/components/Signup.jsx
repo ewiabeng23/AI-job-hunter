@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import axios from 'axios'
 import './Auth.css'
 
-const API_URL = 'http://3.216.134.198:31678/api'
+const API_URL = 'https://jobhunter.wigsbydiko.co.uk/api'
 
 function Signup({ onLogin }) {
   const [email, setEmail] = useState('')
