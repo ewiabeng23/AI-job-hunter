@@ -1,0 +1,150 @@
+# =============================================================================
+# Network Policies — Zero Trust Pod Communication
+# Default deny all, then explicitly allow only what's needed
+# =============================================================================
+
+# --- Default Deny All ---
+# No pod can talk to any other pod unless explicitly allowed
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# --- Allow Frontend → Backend ---
+# Frontend can only talk to backend on port 8001
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8001
+---
+# --- Allow Backend → Postgres ---
+# Backend can only talk to postgres on port 5432
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-postgres
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - protocol: TCP
+      port: 5432
+---
+# --- Allow Ingress → Frontend ---
+# Traefik ingress controller can reach frontend on port 80
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-frontend
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik
+    ports:
+    - protocol: TCP
+      port: 80
+---
+# --- Allow Ingress → Backend ---
+# Traefik ingress controller can reach backend on port 8001
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-backend
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik
+    ports:
+    - protocol: TCP
+      port: 8001
+---
+# --- Allow Backend Egress to AWS ---
+# Backend needs to reach AWS APIs (IRSA, Secrets Manager, S3)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-egress-aws
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - protocol: TCP
+      port: 443
+  - ports:
+    - protocol: TCP
+      port: 5432
+  - ports:
+    - protocol: UDP
+      port: 53
+---
+# --- Allow Frontend Egress DNS ---
+# Frontend needs DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-egress-dns
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - protocol: UDP
+      port: 53
+  - ports:
+    - protocol: TCP
+      port: 8001
