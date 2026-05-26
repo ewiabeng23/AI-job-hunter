@@ -1,0 +1,172 @@
+stages:
+  - scan-source
+  - terraform-plan
+  - build
+  - scan-images
+  - deploy
+  - health-check
+  - test
+
+variables:
+  DOCKERHUB_USER: "ewiabeng23"
+  BACKEND_IMAGE: "$DOCKERHUB_USER/job-hunter-backend"
+  FRONTEND_IMAGE: "$DOCKERHUB_USER/job-hunter-frontend"
+  K8S_NAMESPACE: "job-hunter"
+
+trivy-source-scan:
+  stage: scan-source
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy fs --exit-code 0 --severity HIGH,CRITICAL --no-progress --format table .
+  tags:
+    - docker
+
+# ============================================================
+# TERRAFORM PLAN — runs on every MR, shows infrastructure diff
+# apply is NEVER run in CI — only humans apply via CLI
+# ============================================================
+terraform-plan:
+  stage: terraform-plan
+  image:
+    name: hashicorp/terraform:1.15.4
+    entrypoint: [""]
+  before_script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - export AWS_DEFAULT_REGION=us-east-1
+    - cd terraform
+    - terraform init -reconfigure
+  script:
+    - echo "=== Terraform Format Check ==="
+    - terraform fmt -check -recursive || (echo "ERROR: Terraform files not formatted. Run terraform fmt" && exit 1)
+    - echo "=== Terraform Validate ==="
+    - terraform validate
+    - echo "=== Terraform Plan ==="
+    - terraform plan -no-color -out=tfplan 2>&1 | tee terraform-plan-output.txt
+    - echo "=== Plan Summary ==="
+    - grep -E "^Plan:|No changes" terraform-plan-output.txt || true
+  artifacts:
+    name: "terraform-plan-$CI_PIPELINE_IID"
+    paths:
+      - terraform/tfplan
+      - terraform/terraform-plan-output.txt
+    expire_in: 7 days
+    when: always
+  tags:
+    - docker
+  only:
+    - main
+    - merge_requests
+
+build-backend:
+  stage: build
+  image: docker:24.0.5
+  variables:
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+  before_script:
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
+  script:
+    - docker build -t $BACKEND_IMAGE:latest -t $BACKEND_IMAGE:$CI_PIPELINE_IID ./backend
+    - docker push $BACKEND_IMAGE:latest
+    - docker push $BACKEND_IMAGE:$CI_PIPELINE_IID
+  tags:
+    - docker
+
+build-frontend:
+  stage: build
+  image: docker:24.0.5
+  variables:
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+  before_script:
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
+  script:
+    - docker build -t $FRONTEND_IMAGE:latest -t $FRONTEND_IMAGE:$CI_PIPELINE_IID ./frontend
+    - docker push $FRONTEND_IMAGE:latest
+    - docker push $FRONTEND_IMAGE:$CI_PIPELINE_IID
+  tags:
+    - docker
+
+trivy-image-scan:
+  stage: scan-images
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress $BACKEND_IMAGE:latest
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress $FRONTEND_IMAGE:latest
+  tags:
+    - docker
+
+deploy:
+  stage: deploy
+  image:
+    name: alpine/helm:3.14.0
+    entrypoint: [""]
+  before_script:
+    - apk add --no-cache curl python3 py3-pip aws-cli kubectl
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG_DATA" | base64 -d > ~/.kube/config
+    - chmod 600 ~/.kube/config
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region us-east-1
+  script:
+    - kubectl label namespace $K8S_NAMESPACE app.kubernetes.io/managed-by=Helm --overwrite || true
+    - kubectl annotate namespace $K8S_NAMESPACE meta.helm.sh/release-name=job-hunter meta.helm.sh/release-namespace=$K8S_NAMESPACE --overwrite || true
+    - helm upgrade --install job-hunter ./helm/job-hunter --namespace $K8S_NAMESPACE --set backend.image.tag=latest --set frontend.image.tag=latest --wait --timeout 5m
+    - kubectl rollout restart deployment/backend deployment/frontend -n $K8S_NAMESPACE
+    - kubectl rollout status deployment/backend -n $K8S_NAMESPACE
+    - kubectl rollout status deployment/frontend -n $K8S_NAMESPACE
+  tags:
+    - docker
+  only:
+    - main
+
+health-check:
+  stage: health-check
+  image:
+    name: alpine/helm:3.14.0
+    entrypoint: [""]
+  before_script:
+    - apk add --no-cache aws-cli kubectl
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG_DATA" | base64 -d > ~/.kube/config
+    - chmod 600 ~/.kube/config
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region us-east-1
+  script:
+    - echo "=== Pods ==="
+    - kubectl get pods -n $K8S_NAMESPACE
+    - echo "=== Services ==="
+    - kubectl get svc -n $K8S_NAMESPACE
+    - echo "=== Helm Release ==="
+    - helm list -n $K8S_NAMESPACE
+  tags:
+    - docker
+  only:
+    - main
+
+e2e-tests:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.44.0-jammy
+  variables:
+    BASE_URL: "https://jobhunter.wigsbydiko.co.uk"
+  script:
+    - cd tests
+    - npm install
+    - npx playwright install chromium
+    - npx playwright test --reporter=junit,html
+  artifacts:
+    when: always
+    paths:
+      - tests/playwright-report/
+      - tests/results.xml
+    reports:
+      junit: tests/results.xml
+    expire_in: 7 days
+  only:
+    - main
+  allow_failure: true
