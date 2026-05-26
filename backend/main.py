@@ -34,6 +34,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Health check endpoint
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "version": "1.0.0"}
+
 # Initialize AI agents
 API_KEY = os.getenv("ANTHROPIC_API_KEY")
 job_hunter = JobHunterAgent(API_KEY)

@@ -11,10 +11,27 @@ terraform {
       version = "~> 2.0"
     }
   }
+
+  # Remote state — S3 backend with DynamoDB locking
+  backend "s3" {
+    bucket         = "job-hunter-terraform-state-905846954342"
+    key            = "production/terraform.tfstate"
+    region         = "us-east-1"
+    use_lockfile = true
+    encrypt        = true
+  }
 }
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project     = "AI-Job-Hunter"
+      ManagedBy   = "Terraform"
+      Environment = var.environment
+    }
+  }
 }
 
 provider "helm" {
