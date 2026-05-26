@@ -39,14 +39,9 @@ terraform-plan:
     - cd terraform
     - terraform init -reconfigure
   script:
-    - echo "=== Terraform Format Check ==="
-    - terraform fmt -check -recursive || (echo "ERROR: Terraform files not formatted. Run terraform fmt" && exit 1)
-    - echo "=== Terraform Validate ==="
+    - terraform fmt -check -recursive
     - terraform validate
-    - echo "=== Terraform Plan ==="
     - terraform plan -no-color -out=tfplan 2>&1 | tee terraform-plan-output.txt
-    - echo "=== Plan Summary ==="
-    - grep -E "Plan:|No changes" terraform-plan-output.txt || true
   artifacts:
     name: "terraform-plan-$CI_PIPELINE_IID"
     paths:
