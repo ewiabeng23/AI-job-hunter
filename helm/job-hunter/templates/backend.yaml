@@ -59,14 +59,14 @@ spec:
             memory: {{ .Values.resources.backend.limits.memory }}
         readinessProbe:
           httpGet:
-            path: /health
+            path: /docs
             port: {{ .Values.backend.port }}
           initialDelaySeconds: 10
           periodSeconds: 5
           failureThreshold: 3
         livenessProbe:
           httpGet:
-            path: /health
+            path: /docs
             port: {{ .Values.backend.port }}
           initialDelaySeconds: 30
           periodSeconds: 10
