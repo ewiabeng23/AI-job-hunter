@@ -1,0 +1,6 @@
+apiVersion: v2
+name: job-hunter
+description: AI Job Hunter Application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
