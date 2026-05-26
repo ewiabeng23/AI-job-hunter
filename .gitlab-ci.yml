@@ -46,7 +46,7 @@ terraform-plan:
     - echo "=== Terraform Plan ==="
     - terraform plan -no-color -out=tfplan 2>&1 | tee terraform-plan-output.txt
     - echo "=== Plan Summary ==="
-    - grep -E "^Plan:|No changes" terraform-plan-output.txt || true
+    - grep -E "Plan:|No changes" terraform-plan-output.txt || true
   artifacts:
     name: "terraform-plan-$CI_PIPELINE_IID"
     paths:
