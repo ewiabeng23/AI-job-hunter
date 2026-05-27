@@ -12,7 +12,6 @@ terraform {
     }
   }
 
-  # Remote state — S3 backend with DynamoDB locking
   backend "s3" {
     bucket       = "job-hunter-terraform-state-905846954342"
     key          = "production/terraform.tfstate"
