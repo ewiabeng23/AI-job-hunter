@@ -12,3 +12,8 @@ output "cluster_ca_certificate" {
   description = "EKS cluster CA certificate"
   value       = aws_eks_cluster.main.certificate_authority[0].data
 }
+
+output "aws_load_balancer_controller_role_arn" {
+  description = "IAM role ARN for AWS Load Balancer Controller"
+  value       = aws_iam_role.aws_load_balancer_controller.arn
+}
