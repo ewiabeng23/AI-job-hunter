@@ -107,7 +107,7 @@ deploy:
   script:
     - kubectl label namespace $K8S_NAMESPACE app.kubernetes.io/managed-by=Helm --overwrite || true
     - kubectl annotate namespace $K8S_NAMESPACE meta.helm.sh/release-name=job-hunter meta.helm.sh/release-namespace=$K8S_NAMESPACE --overwrite || true
-    - helm upgrade --install job-hunter ./helm/job-hunter --namespace $K8S_NAMESPACE --set backend.image.tag=latest --set frontend.image.tag=latest --wait --timeout 5m
+    - helm upgrade --install job-hunter ./helm/job-hunter --namespace $K8S_NAMESPACE --set backend.image.tag=latest --set frontend.image.tag=latest --wait --timeout 10m --atomic
     - kubectl rollout restart deployment/backend deployment/frontend -n $K8S_NAMESPACE
     - kubectl rollout status deployment/backend -n $K8S_NAMESPACE
     - kubectl rollout status deployment/frontend -n $K8S_NAMESPACE
