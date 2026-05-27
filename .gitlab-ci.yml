@@ -107,7 +107,7 @@ deploy:
   script:
     - kubectl label namespace $K8S_NAMESPACE app.kubernetes.io/managed-by=Helm --overwrite || true
     - kubectl annotate namespace $K8S_NAMESPACE meta.helm.sh/release-name=job-hunter meta.helm.sh/release-namespace=$K8S_NAMESPACE --overwrite || true
-    - helm upgrade --install job-hunter ./helm/job-hunter --namespace $K8S_NAMESPACE --set backend.image.tag=latest --set frontend.image.tag=latest --timeout 10m
+    - helm upgrade --install job-hunter ./helm/job-hunter --namespace $K8S_NAMESPACE --set backend.image.tag=latest --set frontend.image.tag=latest --set postgres.password=$POSTGRES_PASSWORD --set secrets.databaseUrl="postgresql://jobhunter_user:${POSTGRES_PASSWORD}@postgres-service:5432/jobhunter" --timeout 10m
     - kubectl get pods -n $K8S_NAMESPACE
   only:
     - main
