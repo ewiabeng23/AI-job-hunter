@@ -140,6 +140,8 @@ e2e-tests:
   image: mcr.microsoft.com/playwright:v1.44.0-jammy
   variables:
     BASE_URL: "https://jobhunter.wigsbydiko.co.uk"
+    TEST_USER_EMAIL: $TEST_USER_EMAIL
+    TEST_USER_PASSWORD: $TEST_USER_PASSWORD
   script:
     - cd tests
     - npm install

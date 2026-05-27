@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test';
 // Helper to login
 async function login(page) {
   await page.goto('/');
-  await page.fill('input[type="email"]', 'ewiabeng@yahoo.com');
-  await page.fill('input[type="password"]', 'your-password-here');
+  await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
+  await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
   await page.click('button[type="submit"]');
   await expect(page.locator('text=Search Jobs')).toBeVisible({ timeout: 15000 });
 }
