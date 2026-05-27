@@ -15,5 +15,5 @@ output "cluster_ca_certificate" {
 
 output "aws_load_balancer_controller_role_arn" {
   description = "IAM role ARN for AWS Load Balancer Controller"
-  value       = aws_iam_role.aws_load_balancer_controller.arn
+  value       = "arn:aws:iam::905846954342:role/job-hunter-aws-load-balancer-controller"
 }
