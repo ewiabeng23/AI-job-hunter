@@ -66,6 +66,10 @@ resource "aws_instance" "jenkins" {
   vpc_security_group_ids = [aws_security_group.jenkins.id]
   key_name               = var.key_name
 
+  lifecycle {
+    ignore_changes = [ami, key_name]
+  }
+
   root_block_device {
     volume_size = 20
     volume_type = "gp3"
