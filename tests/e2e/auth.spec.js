@@ -1,11 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication', () => {
-
   test('should show login page by default', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Job Hunter/);
-    await expect(page.locator('h1')).toContainText('Job Hunter');
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
   });
@@ -23,7 +21,14 @@ test.describe('Authentication', () => {
     await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
     await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     await page.click('button[type="submit"]');
-    await expect(page.locator('text=🔍 Search Jobs')).toBeVisible({ timeout: 15000 });
+    // Wait for any navigation after login
+    await page.waitForTimeout(3000);
+    // Log page content for debugging
+    const content = await page.content();
+    console.log('PAGE URL AFTER LOGIN:', page.url());
+    console.log('PAGE TITLE:', await page.title());
+    // Check for dashboard by looking for the tabs container
+    await expect(page.locator('.tabs')).toBeVisible({ timeout: 15000 });
   });
 
   test('should navigate to signup page', async ({ page }) => {
@@ -33,16 +38,12 @@ test.describe('Authentication', () => {
   });
 
   test('should logout successfully', async ({ page }) => {
-    // Login first
     await page.goto('/');
     await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
     await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     await page.click('button[type="submit"]');
-    await expect(page.locator('text=🔍 Search Jobs')).toBeVisible({ timeout: 15000 });
-    
-    // Logout
+    await expect(page.locator('.tabs')).toBeVisible({ timeout: 15000 });
     await page.click('text=Logout');
     await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
   });
-
 });

@@ -5,7 +5,7 @@ async function login(page) {
   await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
   await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
   await page.click('button[type="submit"]');
-  await expect(page.locator('text=🔍 Search Jobs')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('.tabs')).toBeVisible({ timeout: 15000 });
 }
 
 test.describe('Dashboard Navigation', () => {
