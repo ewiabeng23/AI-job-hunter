@@ -6,7 +6,7 @@ async function login(page) {
   await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
   await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
   await page.click('button[type="submit"]');
-  await expect(page.locator('text=Search Jobs')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('text=🔍 Search Jobs')).toBeVisible({ timeout: 15000 });
 }
 
 test.describe('Job Search', () => {
@@ -22,7 +22,7 @@ test.describe('Job Search', () => {
     await login(page);
     await page.fill('input[placeholder="e.g., DevOps Engineer"]', 'DevOps Engineer');
     await page.fill('input[placeholder="e.g., London, UK"]', 'London');
-    await page.click('text=Search Jobs');
+    await page.click('text=🔍 Search Jobs');
     await expect(page.locator('text=Found')).toBeVisible({ timeout: 30000 });
   });
 
@@ -36,7 +36,7 @@ test.describe('Job Search', () => {
     await page.check('input[type="checkbox"]');
     await page.fill('input[placeholder="e.g., DevOps Engineer"]', 'DevOps');
     await page.fill('input[placeholder="e.g., London, UK"]', 'London');
-    await page.click('text=Search Jobs');
+    await page.click('text=🔍 Search Jobs');
     await expect(page.locator('text=Found')).toBeVisible({ timeout: 30000 });
   });
 

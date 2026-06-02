@@ -23,7 +23,7 @@ test.describe('Authentication', () => {
     await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
     await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     await page.click('button[type="submit"]');
-    await expect(page.locator('text=Search Jobs')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=🔍 Search Jobs')).toBeVisible({ timeout: 15000 });
   });
 
   test('should navigate to signup page', async ({ page }) => {
@@ -38,7 +38,7 @@ test.describe('Authentication', () => {
     await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
     await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     await page.click('button[type="submit"]');
-    await expect(page.locator('text=Search Jobs')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=🔍 Search Jobs')).toBeVisible({ timeout: 15000 });
     
     // Logout
     await page.click('text=Logout');
