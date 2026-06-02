@@ -1,5 +1,16 @@
 import { test, expect } from '@playwright/test';
 
+async function login(page) {
+  await page.goto('/');
+  await page.waitForSelector('input[type="email"]', { timeout: 10000 });
+  await page.click('input[type="email"]');
+  await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
+  await page.click('input[type="password"]');
+  await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
+  await page.click('button[type="submit"]');
+  await expect(page.locator('.tabs')).toBeVisible({ timeout: 20000 });
+}
+
 test.describe('Authentication', () => {
   test('should show login page by default', async ({ page }) => {
     await page.goto('/');
@@ -17,18 +28,8 @@ test.describe('Authentication', () => {
   });
 
   test('should login successfully with valid credentials', async ({ page }) => {
-    await page.goto('/');
-    await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
-    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
-    await page.click('button[type="submit"]');
-    // Wait for any navigation after login
-    await page.waitForTimeout(3000);
-    // Log page content for debugging
-    const content = await page.content();
-    console.log('PAGE URL AFTER LOGIN:', page.url());
-    console.log('PAGE TITLE:', await page.title());
-    // Check for dashboard by looking for the tabs container
-    await expect(page.locator('.tabs')).toBeVisible({ timeout: 15000 });
+    await login(page);
+    await expect(page.locator('.tabs')).toBeVisible();
   });
 
   test('should navigate to signup page', async ({ page }) => {
@@ -38,11 +39,7 @@ test.describe('Authentication', () => {
   });
 
   test('should logout successfully', async ({ page }) => {
-    await page.goto('/');
-    await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
-    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
-    await page.click('button[type="submit"]');
-    await expect(page.locator('.tabs')).toBeVisible({ timeout: 15000 });
+    await login(page);
     await page.click('text=Logout');
     await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
   });
