@@ -137,6 +137,7 @@ health-check:
 
 e2e-tests:
   stage: test
+  allow_failure: true
   image: mcr.microsoft.com/playwright:v1.44.0-jammy
   variables:
     BASE_URL: "https://jobhunter.wigsbydiko.co.uk"
@@ -157,4 +158,3 @@ e2e-tests:
     expire_in: 7 days
   only:
     - main
-  allow_failure: true
