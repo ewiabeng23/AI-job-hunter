@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60000,
   retries: 1,
+  globalSetup: './global-setup.js',
   reporter: [['html', { open: 'never' }], ['junit', { outputFile: 'results.xml' }]],
   use: {
     baseURL: process.env.BASE_URL || 'https://jobhunter.wigsbydiko.co.uk',

@@ -1,34 +1,39 @@
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
 
-async function login(page) {
+function getAuth() {
+  return JSON.parse(fs.readFileSync('auth-token.json', 'utf8'));
+}
+
+async function loginWithToken(page) {
+  const { token, user } = getAuth();
   await page.goto('/');
-  await page.waitForSelector('input[type="email"]', { timeout: 10000 });
-  await page.click('input[type="email"]');
-  await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
-  await page.click('input[type="password"]');
-  await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
-  await page.click('button[type="submit"]');
+  await page.evaluate(({ token, user }) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+  }, { token, user });
+  await page.reload();
   await expect(page.locator('.tabs')).toBeVisible({ timeout: 20000 });
 }
 
 test.describe('Job Search', () => {
   test('should show search form after login', async ({ page }) => {
-    await login(page);
+    await loginWithToken(page);
     await expect(page.locator('.search-form')).toBeVisible();
   });
 
   test('should search for jobs', async ({ page }) => {
-    await login(page);
+    await loginWithToken(page);
     await expect(page.locator('.search-form')).toBeVisible();
   });
 
   test('should show Easy Apply checkbox', async ({ page }) => {
-    await login(page);
+    await loginWithToken(page);
     await expect(page.locator('.search-form')).toBeVisible();
   });
 
   test('should filter easy apply jobs', async ({ page }) => {
-    await login(page);
+    await loginWithToken(page);
     await expect(page.locator('.search-form')).toBeVisible();
   });
 });
