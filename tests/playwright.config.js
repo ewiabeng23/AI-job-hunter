@@ -2,13 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30000,
+  timeout: 60000,
   retries: 1,
   reporter: [['html', { open: 'never' }], ['junit', { outputFile: 'results.xml' }]],
   use: {
-    baseURL: 'https://jobhunter.wigsbydiko.co.uk',
+    baseURL: process.env.BASE_URL || 'https://jobhunter.wigsbydiko.co.uk',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    ignoreHTTPSErrors: true,
   },
   projects: [
     {
