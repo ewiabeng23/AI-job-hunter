@@ -6,24 +6,24 @@ from the IaC definition.
 """
 import subprocess
 import sys
-import json
+import os
 from datetime import datetime
+
+# Always resolve terraform dir relative to this script
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TERRAFORM_DIR = os.path.join(SCRIPT_DIR, '..', 'terraform')
 
 def check_drift():
     print(f"🔍 Drift detection started at {datetime.now().isoformat()}")
+    print(f"Terraform directory: {os.path.abspath(TERRAFORM_DIR)}")
     print("Running terraform plan...")
 
     result = subprocess.run(
         ['terraform', 'plan', '-detailed-exitcode', '-no-color'],
         capture_output=True,
         text=True,
-        cwd='terraform'
+        cwd=TERRAFORM_DIR
     )
-
-    # Exit codes:
-    # 0 = no changes (no drift)
-    # 1 = error
-    # 2 = changes detected (drift!)
 
     if result.returncode == 0:
         print("✅ No drift detected — infrastructure matches IaC")
